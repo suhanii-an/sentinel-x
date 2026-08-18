@@ -1,0 +1,35 @@
+# Keeps secrets, local databases and build output out of the build context.
+# A .env copied into an image is a secret published to everyone who can pull it.
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+
+.git/
+.github/
+
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.coverage
+htmlcov/
+venv/
+.venv/
+
+node_modules/
+frontend/dist/
+playwright-report/
+test-results/
+
+*.db
+*.sqlite
+*.sqlite3
+*.log
+
+docs/
+README.md
+CONTRIBUTING.md
+SECURITY.md

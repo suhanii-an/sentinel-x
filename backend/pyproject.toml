@@ -1,0 +1,80 @@
+[project]
+name = "sentinel-x-backend"
+version = "1.0.0"
+description = "SENTINEL-X — detection, correlation and investigation platform"
+requires-python = ">=3.11"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
+addopts = "-q --strict-markers --strict-config"
+filterwarnings = [
+    # A warning the suite does not fail on is a warning nobody reads. This
+    # project currently runs clean, so anything new is a regression.
+    "error",
+    # Third-party deprecations we cannot fix from here.
+    "ignore::DeprecationWarning:passlib.*",
+]
+
+[tool.coverage.run]
+source = ["app"]
+branch = true
+omit = [
+    "app/migrations/*",
+    # Provider clients talk to external APIs over the network. They are
+    # exercised through a fake in the test suite; measuring line coverage on
+    # the HTTP-call bodies would only reward mocking them line by line.
+    "app/ai/provider.py",
+]
+
+[tool.coverage.report]
+skip_covered = false
+show_missing = true
+exclude_lines = [
+    "pragma: no cover",
+    "if TYPE_CHECKING:",
+    "raise NotImplementedError",
+    "if __name__ == .__main__.:",
+]
+
+[tool.ruff]
+line-length = 110
+target-version = "py311"
+exclude = ["migrations"]
+
+[tool.ruff.lint]
+select = [
+    "E",    # pycodestyle
+    "F",    # pyflakes
+    "I",    # import sorting
+    "B",    # bugbear
+    "UP",   # pyupgrade
+    "S",    # bandit — this is a security project; the security linter is on
+    "C4",   # comprehensions
+    "SIM",  # simplifications
+]
+ignore = [
+    "E501",    # line length is handled by the formatter, not by failing builds
+    "B008",    # FastAPI's Depends() in defaults is the framework's idiom
+    "SIM108",  # ternaries are not always clearer than an if/else
+]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/*" = [
+    "S101",  # assert is the entire point of a test
+    "S105",  # "hardcoded password" — test fixtures, and they are named as such
+    "S106",
+    "S311",  # non-cryptographic randomness is correct for test data
+]
+"app/simulators/*" = [
+    # Attack simulators generate telemetry describing malicious activity. The
+    # strings are data written into a database row, never executed, and the
+    # randomness seeds reproducible scenarios rather than anything secret.
+    "S311",
+]
+"app/evaluation/*" = ["S311"]
+"app/services/simulation_runner.py" = [
+    # Seeds a reproducible scenario. Reproducibility is the requirement here;
+    # cryptographic randomness would actively defeat it.
+    "S311",
+]

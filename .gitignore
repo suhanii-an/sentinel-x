@@ -1,0 +1,77 @@
+# ---------------------------------------------------------------- secrets
+# The single most important section in this file. .env holds the JWT signing
+# key, the database password and any AI credential.
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+*.pfx
+credentials.json
+secrets.yaml
+secrets.yml
+
+# ---------------------------------------------------------------- python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+dist/
+*.egg-info/
+.eggs/
+venv/
+.venv/
+env/
+ENV/
+
+# ----------------------------------------------------------------- tests
+.pytest_cache/
+.coverage
+.coverage.*
+coverage.xml
+htmlcov/
+.tox/
+.mypy_cache/
+.ruff_cache/
+
+# ------------------------------------------------------------------- node
+node_modules/
+frontend/dist/
+frontend/dist-ssr/
+.npm/
+*.tsbuildinfo
+playwright-report/
+test-results/
+blob-report/
+.playwright/
+
+# --------------------------------------------------------------- databases
+# Local SQLite databases hold real seeded telemetry and account hashes.
+*.db
+*.db-journal
+*.db-wal
+*.db-shm
+*.sqlite
+*.sqlite3
+
+# ----------------------------------------------------------------- output
+# Generated reports can contain incident detail.
+reports/
+exports/
+*.log
+logs/
+
+# ------------------------------------------------------------------ tools
+.idea/
+.vscode/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+
+# ------------------------------------------------------------------ build
+.cache/
+.parcel-cache/
