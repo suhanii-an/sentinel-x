@@ -1,0 +1,146 @@
+# Persistence.
+#
+# Persistence is almost always a write to a specific, small set of locations.
+# The normalizer classifies the location (metadata.persistence_mechanism); these
+# rules read that classification rather than each carrying its own path table.
+# Adding coverage for a new mechanism is therefore a normalizer change, and every
+# rule below picks it up for free.
+---
+id: PERSISTENCE_SCHEDULED_TASK_001
+name: Persistence Mechanism Created
+description: >
+  A file was created in a location that causes code to execute automatically -
+  cron, systemd units, init scripts, shell profiles, SSH authorized_keys or the
+  Windows startup paths. Writes to these directories are rare outside package
+  installation and configuration management, which makes the base rate low enough
+  for a single event to justify an alert.
+type: match
+severity: high
+confidence: 0.78
+category: persistence
+author: sentinel-x
+version: "1.1"
+
+mitre:
+  techniques: [T1053, T1053.003, T1543, T1543.002, T1098.004]
+  tactics: [TA0003, TA0002]
+
+selection:
+  event_type: file
+  action: [create, modify, write]
+  metadata.persistence_path: true
+
+# One alert per mechanism per host: cron, systemd and authorized_keys are three
+# separate footholds an analyst must remove individually, so collapsing them into
+# a single alert would hide work. Repeated writes to the same mechanism do fold
+# together.
+group_by: [host, metadata.persistence_mechanism]
+
+title_template: "Persistence mechanism created on {host}: {file_path}"
+dedup_window_seconds: 600
+
+false_positives:
+  - "Package managers installing services and cron entries - these correlate with a package transaction in the same second."
+  - "Configuration management writing unit files on every convergence run."
+  - "Legitimate SSH key rotation performed by an automation account."
+
+references:
+  - "https://attack.mitre.org/techniques/T1053/003/"
+  - "https://attack.mitre.org/techniques/T1543/002/"
+
+tests:
+  - name: cron file created
+    expect: match
+    events:
+      - {offset_seconds: 0, event_type: file, action: create, status: success, host_id: LINUX-03, user_id: root, file_path: "/etc/cron.d/system-update", metadata: {persistence_mechanism: cron, persistence_path: true}}
+  - name: systemd unit written
+    expect: match
+    events:
+      - {offset_seconds: 0, event_type: file, action: create, status: success, host_id: LINUX-03, user_id: root, file_path: "/etc/systemd/system/telemetry-sync.service", metadata: {persistence_mechanism: systemd_service, persistence_path: true}}
+  - name: an ordinary file write is not persistence
+    expect: no_match
+    events:
+      - {offset_seconds: 0, event_type: file, action: create, status: success, host_id: LINUX-03, user_id: root, file_path: "/var/tmp/report.csv", metadata: {}}
+
+---
+id: PERSISTENCE_BACKDOOR_ACCOUNT_001
+name: Backdoor Account Created
+description: >
+  A new local account was created with UID 0, giving it root privileges while
+  appearing in listings as an ordinary user. There is no legitimate reason to
+  create a second UID-0 account; this is a deliberate backdoor.
+type: match
+severity: critical
+confidence: 0.92
+category: persistence
+author: sentinel-x
+version: "1.0"
+
+mitre:
+  techniques: [T1136, T1136.001]
+  tactics: [TA0003]
+
+selection:
+  event_type: account
+  action: account_created
+  metadata.uid_zero: true
+
+title_template: "UID 0 account '{user}' created on {host}"
+dedup_window_seconds: 300
+
+false_positives:
+  - "Effectively none. A second UID-0 account is a misconfiguration at best."
+
+references:
+  - "https://attack.mitre.org/techniques/T1136/001/"
+
+tests:
+  - name: account created with uid 0
+    expect: match
+    events:
+      - {offset_seconds: 0, event_type: account, action: account_created, status: success, host_id: LINUX-03, user_id: svc-backup, metadata: {uid: 0, uid_zero: true}}
+  - name: ordinary account creation
+    expect: no_match
+    events:
+      - {offset_seconds: 0, event_type: account, action: account_created, status: success, host_id: LINUX-03, user_id: newhire, metadata: {uid: 1042, uid_zero: false}}
+
+---
+id: PERSISTENCE_SERVICE_INSTALL_001
+name: Unexpected Service Installed
+description: >
+  A new Windows service was installed. Service installation is a routine part of
+  software deployment and a routine part of intrusion; the alert exists to make
+  the analyst compare the service against expected change activity.
+type: match
+severity: medium
+confidence: 0.65
+category: persistence
+author: sentinel-x
+version: "1.0"
+
+mitre:
+  techniques: [T1543, T1543.003]
+  tactics: [TA0003, TA0004]
+
+selection:
+  event_type: service
+  action: service_installed
+
+title_template: "Service installed on {host}"
+dedup_window_seconds: 900
+
+false_positives:
+  - "Software installation and agent upgrades. Volume here is high enough that this rule is most useful as incident context rather than as a standalone page."
+
+references:
+  - "https://attack.mitre.org/techniques/T1543/003/"
+
+tests:
+  - name: service install event
+    expect: match
+    events:
+      - {offset_seconds: 0, event_type: service, action: service_installed, status: success, host_id: WIN-APP-01, user_id: svc-sql, metadata: {windows_event_id: 7045, service_name: WinTelemetrySvc}}
+  - name: starting an existing service is not an installation
+    expect: no_match
+    events:
+      - {offset_seconds: 0, event_type: process, action: process_created, status: success, host_id: WIN-APP-01, user_id: svc-sql, process: "C:\\Windows\\System32\\services.exe", metadata: {windows_event_id: 4688}}

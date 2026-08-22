@@ -1,0 +1,176 @@
+# Valid-account abuse: the attacker is authenticated, so nothing "fails".
+#
+# This is the hardest class to detect and the easiest to over-alert on. The rule
+# set here is deliberately conservative: the anomaly rule requires at least two
+# independent behavioural factors to agree before it fires, because a rule that
+# flags every unfamiliar source address trains analysts to ignore it.
+---
+id: VALID_ACCOUNT_ABUSE_001
+name: Anomalous Successful Authentication
+description: >
+  A successful authentication deviated from the account's established behaviour
+  across multiple independent dimensions - source address, time of day and
+  destination host. Each factor and its weight is recorded on the alert, so the
+  analyst can see exactly what the account normally does and how this differed.
+  Accounts with fewer than the configured minimum observations are never scored.
+type: anomaly
+severity: medium
+confidence: 0.60
+category: credential-abuse
+author: sentinel-x
+version: "1.1"
+
+mitre:
+  techniques: [T1078]
+  tactics: [TA0001, TA0003, TA0004, TA0005]
+
+anomaly:
+  detector: anomalous_authentication
+  params:
+    min_observations: 8
+    threshold: 0.45
+    escalate_severity_at: 0.70
+    weight_new_source_ip: 0.30
+    weight_external_source: 0.25
+    weight_off_hours: 0.25
+    weight_new_host: 0.20
+
+selection:
+  event_type: authentication
+  status: success
+
+title_template: "Anomalous authentication for {user} from {source_ip}"
+dedup_window_seconds: 3600
+
+false_positives:
+  - "Legitimate travel or a new remote-working location, which typically shows a new address but normal hours and a familiar host."
+  - "A newly provisioned VPN concentrator or NAT gateway changing the apparent source for many accounts at once."
+  - "Scheduled maintenance windows that move a service account's activity outside its usual hours."
+
+references:
+  - "https://attack.mitre.org/techniques/T1078/"
+
+tests:
+  - name: unfamiliar external address at an unusual hour
+    description: Three factors agree - new address, first public source, outside observed hours.
+    expect: match
+    baselines:
+      - {entity_type: user, entity_ref: admin, feature: source_ips,  observations: 40, value: {ips: {"10.20.4.31": 40}}}
+      - {entity_type: user, entity_ref: admin, feature: login_hours, observations: 40, value: {hours: {"14": 40}}}
+      - {entity_type: user, entity_ref: admin, feature: hosts,       observations: 40, value: {hosts: {"linux-03": 40}}}
+    events:
+      - {offset_seconds: 43200, event_type: authentication, action: login, status: success, host_id: LINUX-03, user_id: admin, source_ip: 203.0.113.44}
+  - name: a new source address on its own is not an anomaly
+    description: The single most important negative case - this is what stops the rule flooding the queue.
+    expect: no_match
+    baselines:
+      - {entity_type: user, entity_ref: admin, feature: source_ips,  observations: 40, value: {ips: {"10.20.4.31": 30, "198.51.100.10": 10}}}
+      - {entity_type: user, entity_ref: admin, feature: login_hours, observations: 40, value: {hours: {"14": 40}}}
+      - {entity_type: user, entity_ref: admin, feature: hosts,       observations: 40, value: {hosts: {"linux-03": 40}}}
+    events:
+      - {offset_seconds: 0, event_type: authentication, action: login, status: success, host_id: LINUX-03, user_id: admin, source_ip: 203.0.113.44}
+  - name: accounts with too little history are never scored
+    expect: no_match
+    baselines:
+      - {entity_type: user, entity_ref: newhire, feature: source_ips,  observations: 3, value: {ips: {"10.20.4.31": 3}}}
+      - {entity_type: user, entity_ref: newhire, feature: login_hours, observations: 3, value: {hours: {"14": 3}}}
+    events:
+      - {offset_seconds: 43200, event_type: authentication, action: login, status: success, host_id: LINUX-09, user_id: newhire, source_ip: 203.0.113.44}
+
+---
+id: CREDENTIAL_FILE_ACCESS_001
+name: Access To Credential-Bearing File
+description: >
+  A process read or modified a file that stores credentials or privilege
+  configuration (/etc/shadow, /etc/sudoers, SSH private keys). Legitimate access
+  is rare, scripted and predictable; unexpected access is a strong signal that an
+  actor is harvesting material to move laterally.
+type: match
+severity: high
+confidence: 0.70
+category: credential-abuse
+author: sentinel-x
+version: "1.0"
+
+mitre:
+  techniques: [T1552, T1552.004]
+  tactics: [TA0006]
+
+selection:
+  any_of:
+    - event_type: file
+      metadata.sensitive_file: true
+    - event_type: [process, discovery]
+      command_line:
+        contains: ["/etc/shadow", "id_rsa", ".ssh/authorized_keys", "/etc/sudoers"]
+
+# Grouped so a session touching three credential files produces one alert
+# carrying three pieces of evidence, rather than three alerts to triage.
+group_by: [host, user]
+
+title_template: "Credential material accessed on {host} by {user}"
+dedup_window_seconds: 600
+
+false_positives:
+  - "Configuration management (Ansible, Puppet, Chef) reading or templating these files on a schedule."
+  - "Backup agents performing full-filesystem reads."
+
+references:
+  - "https://attack.mitre.org/techniques/T1552/004/"
+
+tests:
+  - name: reading the shadow file
+    expect: match
+    events:
+      - {offset_seconds: 0, event_type: process, action: exec, status: success, host_id: LINUX-03, user_id: admin, process: cat, command_line: "cat /etc/shadow"}
+  - name: ordinary file read is not credential access
+    expect: no_match
+    events:
+      - {offset_seconds: 0, event_type: process, action: exec, status: success, host_id: LINUX-03, user_id: admin, process: cat, command_line: "cat /var/log/app.log"}
+
+---
+id: IOC_MATCH_001
+name: Known Malicious Indicator Observed
+description: >
+  An event referenced a value present in the indicator store. Indicator matching
+  is corroboration rather than proof: the alert inherits the indicator's own
+  confidence and severity, so a low-confidence feed hit does not present itself
+  as a certainty. Its real value is raising confidence in an incident that other
+  rules already built.
+type: ioc
+severity: medium
+confidence: 0.85
+category: credential-abuse
+author: sentinel-x
+version: "1.0"
+
+mitre:
+  techniques: [T1071]
+  tactics: [TA0011]
+
+ioc:
+  types: [ip, hash, domain, hostname]
+  fields: [source_ip, destination_ip, file_hash]
+
+dedup_window_seconds: 1800
+
+false_positives:
+  - "Stale indicators: infrastructure is frequently reassigned, and an address that hosted a C2 server last month may be a CDN edge today."
+  - "Shared hosting and cloud provider ranges where one abusive tenant taints an address used by many."
+
+references:
+  - "https://attack.mitre.org/techniques/T1071/"
+
+tests:
+  - name: connection to a known-bad address
+    expect: match
+    iocs:
+      - {ioc_id: IOC-TEST-0001, indicator: "203.0.113.44", ioc_type: ip, confidence: 0.9, severity: high, source: test-fixture, tags: [c2]}
+    events:
+      - {offset_seconds: 0, event_type: network, action: allow, status: success, host_id: LINUX-03, user_id: admin, source_ip: 10.20.4.31, destination_ip: 203.0.113.44, destination_port: 443}
+  - name: traffic to an address not in the indicator store
+    expect: no_match
+    iocs:
+      - {ioc_id: IOC-TEST-0001, indicator: "203.0.113.44", ioc_type: ip, confidence: 0.9, severity: high, source: test-fixture}
+    events:
+      - {offset_seconds: 0, event_type: network, action: allow, status: success, host_id: LINUX-03, user_id: admin, source_ip: 10.20.4.31, destination_ip: 10.20.4.52, destination_port: 443}

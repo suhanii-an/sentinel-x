@@ -1,0 +1,210 @@
+# Cloud IAM abuse.
+#
+# Cloud intrusions happen in the control plane, not on a host: no process runs,
+# no file is written, and the only evidence is an audit record of an API call.
+# The normalizer classifies each call's blast radius (metadata.iam_risk); these
+# rules reason about that classification.
+#
+# No cloud credentials are required to run any of this. SENTINEL-X consumes audit
+# records, which is exactly how a real detection pipeline sees cloud activity.
+---
+id: CLOUD_IAM_PRIVESC_001
+name: High-Privilege Policy Attached
+description: >
+  An identity was granted a policy conferring administrative access. This is the
+  terminal step of most cloud privilege escalation: once an identity holds
+  AdministratorAccess, every subsequent action is authorised and therefore
+  invisible to authorisation-based controls.
+type: match
+severity: critical
+confidence: 0.88
+category: cloud-iam
+author: sentinel-x
+version: "1.0"
+
+mitre:
+  techniques: [T1098, T1098.003, T1078.004]
+  tactics: [TA0004, TA0003]
+
+selection:
+  metadata.iam_category: privilege_grant
+  metadata.high_risk_policy: true
+  status: success
+
+title_template: "Administrative policy attached to {user} in {cloud_account}"
+dedup_window_seconds: 600
+
+false_positives:
+  - "Break-glass procedures and legitimate infrastructure-as-code changes. Both should correlate with a change record; neither should originate from an unfamiliar address at 02:00."
+
+references:
+  - "https://attack.mitre.org/techniques/T1098/003/"
+
+tests:
+  - name: AdministratorAccess attached
+    expect: match
+    events:
+      - {offset_seconds: 0, event_type: privilege, action: AttachUserPolicy, status: success, user_id: dev-admin, cloud_account: "123456789012", cloud_service: iam, source_ip: 198.51.100.77, metadata: {iam_category: privilege_grant, iam_risk: critical, high_risk_policy: true, policy: "arn:aws:iam::aws:policy/AdministratorAccess"}}
+  - name: a scoped read-only policy is not escalation
+    expect: no_match
+    events:
+      - {offset_seconds: 0, event_type: privilege, action: AttachUserPolicy, status: success, user_id: dev-admin, cloud_account: "123456789012", cloud_service: iam, source_ip: 198.51.100.77, metadata: {iam_category: privilege_grant, iam_risk: critical, high_risk_policy: false, policy: "arn:aws:iam::aws:policy/ReadOnlyAccess"}}
+
+---
+id: CLOUD_LOG_TAMPERING_001
+name: Audit Logging Disabled Or Deleted
+description: >
+  An identity stopped, deleted or reconfigured cloud audit logging. Destroying
+  the audit trail has no benign explanation during normal operations and is
+  frequently the last action before the activity an actor wants hidden.
+type: match
+severity: critical
+confidence: 0.90
+category: cloud-iam
+author: sentinel-x
+version: "1.0"
+
+mitre:
+  techniques: [T1562, T1562.008]
+  tactics: [TA0005]
+
+selection:
+  metadata.iam_category: defense_evasion
+  status: success
+
+title_template: "Cloud audit logging tampered with by {user} ({action})"
+dedup_window_seconds: 300
+
+false_positives:
+  - "Decommissioning a trail as part of a planned account teardown."
+
+references:
+  - "https://attack.mitre.org/techniques/T1562/008/"
+
+tests:
+  - name: StopLogging called
+    expect: match
+    events:
+      - {offset_seconds: 0, event_type: cloud_audit, action: StopLogging, status: success, user_id: dev-admin, cloud_account: "123456789012", cloud_service: cloudtrail, source_ip: 198.51.100.77, metadata: {iam_category: defense_evasion, iam_risk: critical}}
+  - name: reading trail configuration is not tampering
+    expect: no_match
+    events:
+      - {offset_seconds: 0, event_type: cloud_audit, action: DescribeTrails, status: success, user_id: dev-admin, cloud_account: "123456789012", cloud_service: cloudtrail, source_ip: 198.51.100.77, metadata: {read_only: true}}
+  - name: a failed tampering attempt is not a successful one
+    expect: no_match
+    events:
+      - {offset_seconds: 0, event_type: cloud_audit, action: StopLogging, status: failure, user_id: dev-admin, cloud_account: "123456789012", cloud_service: cloudtrail, source_ip: 198.51.100.77, metadata: {iam_category: defense_evasion, iam_risk: critical, error_code: AccessDenied}}
+
+---
+id: CLOUD_IAM_KEY_CHAIN_001
+name: Cloud Enumeration Followed By Credential Creation
+description: >
+  An identity enumerated the IAM graph and then minted new long-lived
+  credentials. New access keys survive a password reset and an MFA enrolment,
+  which is precisely why actors create them - it converts a transient session
+  into durable access.
+type: sequence
+severity: critical
+confidence: 0.86
+category: cloud-iam
+author: sentinel-x
+version: "1.0"
+
+mitre:
+  techniques: [T1098, T1098.001, T1136.003]
+  tactics: [TA0003, TA0004]
+
+group_by: [user, cloud_account]
+window_seconds: 1800
+ordered: true
+
+steps:
+  - name: cloud_enumeration
+    min_count: 2
+    selection:
+      metadata.cloud_discovery: true
+  - name: credential_creation
+    min_count: 1
+    max_gap_seconds: 1200
+    selection:
+      metadata.iam_category: [credential_creation, credential_modification]
+      status: success
+
+title_template: "Credential creation after enumeration by {user} in {cloud_account}"
+dedup_window_seconds: 1800
+
+false_positives:
+  - "Automated key-rotation workflows, which list identities and then create replacement keys. These run on a fixed schedule from a known address."
+
+references:
+  - "https://attack.mitre.org/techniques/T1098/001/"
+
+tests:
+  - name: enumeration then access key creation
+    expect: match
+    events:
+      - {offset_seconds: 0,   event_type: discovery, action: ListUsers,      status: success, user_id: dev-admin, cloud_account: "123456789012", source_ip: 198.51.100.77, metadata: {cloud_discovery: true}}
+      - {offset_seconds: 40,  event_type: discovery, action: ListAccessKeys, status: success, user_id: dev-admin, cloud_account: "123456789012", source_ip: 198.51.100.77, metadata: {cloud_discovery: true}}
+      - {offset_seconds: 180, event_type: privilege, action: CreateAccessKey, status: success, user_id: dev-admin, cloud_account: "123456789012", source_ip: 198.51.100.77, metadata: {iam_category: credential_creation, iam_risk: high}}
+  - name: credential creation with no preceding enumeration
+    expect: no_match
+    events:
+      - {offset_seconds: 0, event_type: privilege, action: CreateAccessKey, status: success, user_id: dev-admin, cloud_account: "123456789012", source_ip: 198.51.100.77, metadata: {iam_category: credential_creation, iam_risk: high}}
+
+---
+id: CLOUD_IAM_ANOMALY_001
+name: Anomalous Cloud Control-Plane Activity
+description: >
+  An identity performed control-plane operations that deviate from its
+  established pattern across several dimensions - API never previously called,
+  blast radius of the operation, time of day, source address and MFA state. As
+  with the host-side anomaly rule, a single novel attribute is not sufficient.
+type: anomaly
+severity: high
+confidence: 0.70
+category: cloud-iam
+author: sentinel-x
+version: "1.0"
+
+mitre:
+  techniques: [T1078, T1078.004]
+  tactics: [TA0004, TA0005]
+
+anomaly:
+  detector: unusual_cloud_api_for_identity
+  params:
+    min_observations: 10
+    threshold: 0.50
+    escalate_severity_at: 0.85
+
+selection:
+  cloud_account:
+    exists: true
+
+title_template: "Anomalous cloud activity by {user} in {cloud_account}"
+dedup_window_seconds: 1800
+
+false_positives:
+  - "An engineer legitimately performing a task they have not performed before, such as a first production deployment."
+  - "A newly automated workflow adopting an existing identity, which changes both the API mix and the source address at once."
+
+references:
+  - "https://attack.mitre.org/techniques/T1078/004/"
+
+tests:
+  - name: unfamiliar high-risk API, off hours, new address, no MFA
+    expect: match
+    baselines:
+      - {entity_type: user, entity_ref: dev-admin, feature: cloud_apis,  observations: 40, value: {apis: {"listusers": 30, "getcalleridentity": 10}}}
+      - {entity_type: user, entity_ref: dev-admin, feature: cloud_hours, observations: 40, value: {hours: {"14": 40}}}
+      - {entity_type: user, entity_ref: dev-admin, feature: source_ips,  observations: 40, value: {ips: {"198.51.100.10": 40}}}
+    events:
+      - {offset_seconds: 43200, event_type: privilege, action: AttachUserPolicy, status: success, user_id: dev-admin, cloud_account: "123456789012", cloud_service: iam, source_ip: 203.0.113.44, metadata: {iam_category: privilege_grant, iam_risk: critical, high_risk_policy: true, mfa_authenticated: false, policy: "arn:aws:iam::aws:policy/AdministratorAccess"}}
+  - name: routine call from the identity's normal address and hour
+    expect: no_match
+    baselines:
+      - {entity_type: user, entity_ref: dev-admin, feature: cloud_apis,  observations: 40, value: {apis: {"listusers": 30, "getcalleridentity": 10}}}
+      - {entity_type: user, entity_ref: dev-admin, feature: cloud_hours, observations: 40, value: {hours: {"14": 40}}}
+      - {entity_type: user, entity_ref: dev-admin, feature: source_ips,  observations: 40, value: {ips: {"198.51.100.10": 40}}}
+    events:
+      - {offset_seconds: 0, event_type: discovery, action: ListUsers, status: success, user_id: dev-admin, cloud_account: "123456789012", cloud_service: iam, source_ip: 198.51.100.10, metadata: {cloud_discovery: true, read_only: true, mfa_authenticated: true}}

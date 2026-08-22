@@ -1,0 +1,124 @@
+# Discovery: the reconnaissance an actor performs immediately after getting in.
+#
+# Every command in these rules is one an administrator also runs. The signal is
+# never the individual command - it is running commands from several different
+# enumeration categories in quick succession, which is what an operator doing
+# situational awareness looks like and what a person doing their job does not.
+---
+id: ACCOUNT_DISCOVERY_001
+name: Host Enumeration Burst
+description: >
+  A single account executed discovery commands spanning several distinct
+  enumeration categories (account, system, network, permission) within a short
+  window. The breadth requirement is what separates this from an administrator
+  running `id` - one category is routine, three in ninety seconds is
+  reconnaissance.
+type: threshold
+severity: medium
+confidence: 0.70
+category: discovery
+author: sentinel-x
+version: "1.1"
+
+mitre:
+  techniques: [T1087, T1087.001, T1082, T1033]
+  tactics: [TA0007]
+
+selection:
+  event_type: discovery
+  metadata.discovery_category:
+    exists: true
+
+group_by: [user, host]
+
+threshold:
+  count: 4
+  window_seconds: 180
+  distinct_field: metadata.discovery_category
+  distinct_count: 3
+
+title_template: "Enumeration burst by {user} on {host}"
+dedup_window_seconds: 900
+
+false_positives:
+  - "Administrators triaging an incident or onboarding a new host genuinely run these commands together."
+  - "Configuration management and inventory agents collecting facts on a schedule - these are usually the same account at the same minute each run."
+  - "Security scanners performing authenticated host inventory."
+
+references:
+  - "https://attack.mitre.org/techniques/T1087/"
+  - "https://attack.mitre.org/techniques/T1082/"
+
+tests:
+  - name: four commands across three categories
+    expect: match
+    events:
+      - {offset_seconds: 0,  event_type: discovery, action: exec, status: success, host_id: LINUX-03, user_id: admin, process: whoami, metadata: {discovery_category: account}}
+      - {offset_seconds: 11, event_type: discovery, action: exec, status: success, host_id: LINUX-03, user_id: admin, process: id,     metadata: {discovery_category: account}}
+      - {offset_seconds: 23, event_type: discovery, action: exec, status: success, host_id: LINUX-03, user_id: admin, process: uname,  metadata: {discovery_category: system}}
+      - {offset_seconds: 38, event_type: discovery, action: exec, status: success, host_id: LINUX-03, user_id: admin, process: netstat, metadata: {discovery_category: network}}
+  - name: repeated commands in one category are not a burst
+    expect: no_match
+    events:
+      - {offset_seconds: 0,  event_type: discovery, action: exec, status: success, host_id: LINUX-03, user_id: admin, process: whoami, metadata: {discovery_category: account}}
+      - {offset_seconds: 11, event_type: discovery, action: exec, status: success, host_id: LINUX-03, user_id: admin, process: id,     metadata: {discovery_category: account}}
+      - {offset_seconds: 23, event_type: discovery, action: exec, status: success, host_id: LINUX-03, user_id: admin, process: groups, metadata: {discovery_category: account}}
+      - {offset_seconds: 38, event_type: discovery, action: exec, status: success, host_id: LINUX-03, user_id: admin, process: id,     metadata: {discovery_category: account}}
+
+---
+id: CLOUD_DISCOVERY_001
+name: Cloud Identity Enumeration
+description: >
+  An identity issued a burst of read-only IAM and inventory calls. Mapping the
+  identity graph is the first thing an actor does after obtaining cloud
+  credentials, because it tells them which role to target next.
+type: threshold
+severity: medium
+confidence: 0.70
+category: discovery
+author: sentinel-x
+version: "1.0"
+
+mitre:
+  techniques: [T1087, T1087.004, T1526]
+  tactics: [TA0007]
+
+selection:
+  metadata.cloud_discovery: true
+
+group_by: [user, cloud_account]
+
+threshold:
+  count: 5
+  window_seconds: 300
+  distinct_field: action
+  distinct_count: 4
+
+title_template: "Cloud enumeration by {user} in account {cloud_account}"
+dedup_window_seconds: 1800
+
+false_positives:
+  - "Cloud security posture management tools, which enumerate IAM continuously by design."
+  - "Infrastructure-as-code plan operations, which read broadly before applying changes."
+
+references:
+  - "https://attack.mitre.org/techniques/T1087/004/"
+  - "https://attack.mitre.org/techniques/T1526/"
+
+tests:
+  - name: five distinct read-only IAM calls
+    expect: match
+    events:
+      - {offset_seconds: 0,  event_type: discovery, action: ListUsers,       status: success, user_id: dev-admin, cloud_account: "123456789012", source_ip: 198.51.100.77, metadata: {cloud_discovery: true}}
+      - {offset_seconds: 12, event_type: discovery, action: ListRoles,       status: success, user_id: dev-admin, cloud_account: "123456789012", source_ip: 198.51.100.77, metadata: {cloud_discovery: true}}
+      - {offset_seconds: 25, event_type: discovery, action: ListPolicies,    status: success, user_id: dev-admin, cloud_account: "123456789012", source_ip: 198.51.100.77, metadata: {cloud_discovery: true}}
+      - {offset_seconds: 37, event_type: discovery, action: ListAccessKeys,  status: success, user_id: dev-admin, cloud_account: "123456789012", source_ip: 198.51.100.77, metadata: {cloud_discovery: true}}
+      - {offset_seconds: 49, event_type: discovery, action: GetAccountSummary, status: success, user_id: dev-admin, cloud_account: "123456789012", source_ip: 198.51.100.77, metadata: {cloud_discovery: true}}
+  - name: a CI job polling the same two calls is not enumeration
+    expect: no_match
+    events:
+      - {offset_seconds: 0,  event_type: discovery, action: GetCallerIdentity, status: success, user_id: ci-runner, cloud_account: "123456789012", source_ip: 198.51.100.5, metadata: {cloud_discovery: true}}
+      - {offset_seconds: 12, event_type: discovery, action: GetCallerIdentity, status: success, user_id: ci-runner, cloud_account: "123456789012", source_ip: 198.51.100.5, metadata: {cloud_discovery: true}}
+      - {offset_seconds: 25, event_type: discovery, action: GetCallerIdentity, status: success, user_id: ci-runner, cloud_account: "123456789012", source_ip: 198.51.100.5, metadata: {cloud_discovery: true}}
+      - {offset_seconds: 37, event_type: discovery, action: ListBuckets,       status: success, user_id: ci-runner, cloud_account: "123456789012", source_ip: 198.51.100.5, metadata: {cloud_discovery: true}}
+      - {offset_seconds: 49, event_type: discovery, action: ListBuckets,       status: success, user_id: ci-runner, cloud_account: "123456789012", source_ip: 198.51.100.5, metadata: {cloud_discovery: true}}

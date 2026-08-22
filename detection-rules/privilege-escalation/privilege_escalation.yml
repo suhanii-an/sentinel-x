@@ -1,0 +1,193 @@
+# Privilege escalation.
+#
+# SENTINEL-X detects the *telemetry shape* of escalation. It does not, anywhere,
+# execute or reproduce an exploit - see docs/attack-scenarios.md. The simulators
+# emit the events a real escalation would leave behind; the rules below read them.
+---
+id: PRIVESC_SUID_ENUM_001
+name: SUID Binary Enumeration
+description: >
+  A process searched the filesystem for setuid binaries. This is the standard
+  first move of every Linux privilege-escalation workflow and public enumeration
+  script, and it has almost no legitimate interactive use.
+type: match
+severity: medium
+confidence: 0.75
+category: privilege-escalation
+author: sentinel-x
+version: "1.0"
+
+mitre:
+  techniques: [T1548, T1548.001]
+  tactics: [TA0004, TA0007]
+
+selection:
+  metadata.argument_indicators:
+    contains: suid_enumeration
+
+title_template: "SUID enumeration by {user} on {host}"
+dedup_window_seconds: 900
+
+false_positives:
+  - "Security audit tooling (lynis, OpenSCAP, CIS benchmark scripts) performs exactly this search on a schedule."
+
+references:
+  - "https://attack.mitre.org/techniques/T1548/001/"
+
+tests:
+  - name: find with the suid permission predicate
+    expect: match
+    events:
+      - {offset_seconds: 0, event_type: discovery, action: exec, status: success, host_id: LINUX-03, user_id: admin, process: find, command_line: "find / -perm -4000 -type f", metadata: {argument_indicators: [suid_enumeration], discovery_category: permission}}
+  - name: an ordinary find is not enumeration
+    expect: no_match
+    events:
+      - {offset_seconds: 0, event_type: discovery, action: exec, status: success, host_id: LINUX-03, user_id: admin, process: find, command_line: "find /var/log -name '*.log'", metadata: {discovery_category: permission}}
+
+---
+id: PRIVESC_SUDO_CHAIN_001
+name: Enumeration Followed By Privilege Elevation
+description: >
+  An account enumerated its privilege surface and then successfully elevated to
+  root shortly afterwards. Either half is ordinary administration; the ordering
+  and proximity are what make the pair suspicious, and only a sequence rule can
+  express that.
+type: sequence
+severity: high
+confidence: 0.82
+category: privilege-escalation
+author: sentinel-x
+version: "1.0"
+
+mitre:
+  techniques: [T1548, T1548.003, T1068]
+  tactics: [TA0004]
+
+group_by: [user, host]
+window_seconds: 600
+ordered: true
+
+steps:
+  - name: privilege_enumeration
+    min_count: 1
+    selection:
+      any_of:
+        - event_type: discovery
+          metadata.discovery_category: permission
+        - metadata.argument_indicators:
+            contains: suid_enumeration
+        - event_type: discovery
+          process: sudo
+  - name: elevation
+    min_count: 1
+    max_gap_seconds: 420
+    selection:
+      event_type: privilege
+      status: success
+      metadata.elevated: true
+
+title_template: "Privilege escalation chain: {user} elevated on {host} after enumeration"
+dedup_window_seconds: 1800
+
+false_positives:
+  - "An administrator checking `sudo -l` before running a privileged command, which is both common and benign."
+
+references:
+  - "https://attack.mitre.org/techniques/T1548/003/"
+
+tests:
+  - name: suid enumeration then root shell
+    expect: match
+    events:
+      - {offset_seconds: 0,  event_type: discovery, action: exec, status: success, host_id: LINUX-03, user_id: admin, process: find, command_line: "find / -perm -4000 -type f", metadata: {discovery_category: permission, argument_indicators: [suid_enumeration]}}
+      - {offset_seconds: 47, event_type: privilege, action: sudo, status: success, host_id: LINUX-03, user_id: admin, command_line: "/bin/bash", metadata: {elevated: true, target_user: root}}
+  - name: elevation with no preceding enumeration
+    expect: no_match
+    events:
+      - {offset_seconds: 0, event_type: privilege, action: sudo, status: success, host_id: LINUX-03, user_id: admin, command_line: "/usr/bin/apt update", metadata: {elevated: true, target_user: root}}
+
+---
+id: PRIVESC_GROUP_CHANGE_001
+name: Account Added To Privileged Group
+description: >
+  An account was added to a group that confers administrative rights (sudo,
+  wheel, Administrators, Domain Admins). This is both a privilege-escalation
+  technique and a persistence technique - the attacker keeps the access even if
+  the original vector is closed.
+type: match
+severity: high
+confidence: 0.80
+category: privilege-escalation
+author: sentinel-x
+version: "1.0"
+
+mitre:
+  techniques: [T1098, T1078]
+  tactics: [TA0004, TA0003]
+
+selection:
+  event_type: account
+  action: group_member_added
+  metadata.privileged_group: true
+
+title_template: "{user} added to privileged group on {host}"
+dedup_window_seconds: 600
+
+false_positives:
+  - "Legitimate onboarding and role changes, which should correlate with a change ticket."
+
+references:
+  - "https://attack.mitre.org/techniques/T1098/"
+
+tests:
+  - name: added to the sudo group
+    expect: match
+    events:
+      - {offset_seconds: 0, event_type: account, action: group_member_added, status: success, host_id: LINUX-03, user_id: svc-backup, metadata: {group: sudo, privileged_group: true}}
+  - name: added to an unprivileged group
+    expect: no_match
+    events:
+      - {offset_seconds: 0, event_type: account, action: group_member_added, status: success, host_id: LINUX-03, user_id: svc-backup, metadata: {group: developers, privileged_group: false}}
+
+---
+id: PRIVESC_WINDOWS_SPECIAL_PRIV_001
+name: Sensitive Privileges Assigned At Logon
+description: >
+  A Windows logon was granted highly sensitive privileges such as SeDebugPrivilege
+  or SeTcbPrivilege. SeDebugPrivilege in particular allows reading the memory of
+  any process, which is the route to credential material held by LSASS.
+type: match
+severity: high
+confidence: 0.72
+category: privilege-escalation
+author: sentinel-x
+version: "1.0"
+
+mitre:
+  techniques: [T1134, T1078]
+  tactics: [TA0004, TA0005]
+
+selection:
+  event_type: privilege
+  metadata.windows_event_id: 4672
+  metadata.privileges:
+    contains: ["SeDebugPrivilege", "SeTcbPrivilege", "SeLoadDriverPrivilege"]
+
+title_template: "Sensitive privileges assigned to {user} on {host}"
+dedup_window_seconds: 900
+
+false_positives:
+  - "Backup, EDR and monitoring agents legitimately hold several of these privileges and will generate 4672 on every service logon."
+
+references:
+  - "https://attack.mitre.org/techniques/T1134/"
+
+tests:
+  - name: SeDebugPrivilege granted
+    expect: match
+    events:
+      - {offset_seconds: 0, event_type: privilege, action: special_privileges_assigned, status: success, host_id: WIN-APP-01, user_id: svc-sql, metadata: {windows_event_id: 4672, privileges: [SeDebugPrivilege, SeTcbPrivilege], elevated: true}}
+  - name: routine privileges are not sensitive
+    expect: no_match
+    events:
+      - {offset_seconds: 0, event_type: privilege, action: special_privileges_assigned, status: success, host_id: WIN-APP-01, user_id: svc-sql, metadata: {windows_event_id: 4672, privileges: [SeChangeNotifyPrivilege], elevated: true}}

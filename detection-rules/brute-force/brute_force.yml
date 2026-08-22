@@ -1,0 +1,218 @@
+# Brute force and credential-guessing detections.
+#
+# Three rules, not one, because "many failed logins" describes three different
+# attacks with different responses:
+#   - many failures against ONE account from one source  -> guessing
+#   - few failures against MANY accounts from one source -> password spraying
+#   - failures THEN a success                            -> compromise
+# Collapsing them into a single rule would lose the distinction that decides
+# whether an analyst resets one password or a thousand.
+---
+id: BRUTE_FORCE_001
+name: Repeated Authentication Failures From Single Source
+description: >
+  A single source address produced repeated authentication failures against the
+  estate within a short window. This is the classic password-guessing signature.
+  On its own it indicates an attempt, not a compromise - BRUTE_FORCE_003 covers
+  the case where the attempt succeeds.
+type: threshold
+severity: high
+confidence: 0.80
+category: brute-force
+author: sentinel-x
+version: "1.1"
+
+mitre:
+  techniques: [T1110, T1110.001]
+  tactics: [TA0006]
+
+selection:
+  event_type: authentication
+  status: failure
+  action: login
+
+group_by: [source_ip]
+
+threshold:
+  count: 5
+  window_seconds: 300
+
+title_template: "Brute force: {source_ip} produced repeated authentication failures"
+dedup_window_seconds: 900
+
+false_positives:
+  - "Misconfigured service accounts retrying with a stale password after a rotation."
+  - "A user whose saved credential is out of date, typically producing failures against one account only."
+  - "Vulnerability scanners and authenticated monitoring probes."
+
+references:
+  - "https://attack.mitre.org/techniques/T1110/"
+
+tests:
+  - name: five failures from one source in three minutes
+    expect: match
+    events:
+      - {offset_seconds: 0,  event_type: authentication, action: login, status: failure, source_ip: 203.0.113.44, user_id: admin,  host_id: LINUX-03}
+      - {offset_seconds: 20, event_type: authentication, action: login, status: failure, source_ip: 203.0.113.44, user_id: admin,  host_id: LINUX-03}
+      - {offset_seconds: 41, event_type: authentication, action: login, status: failure, source_ip: 203.0.113.44, user_id: admin,  host_id: LINUX-03}
+      - {offset_seconds: 62, event_type: authentication, action: login, status: failure, source_ip: 203.0.113.44, user_id: admin,  host_id: LINUX-03}
+      - {offset_seconds: 90, event_type: authentication, action: login, status: failure, source_ip: 203.0.113.44, user_id: admin,  host_id: LINUX-03}
+  - name: four failures stays under the threshold
+    expect: no_match
+    events:
+      - {offset_seconds: 0,  event_type: authentication, action: login, status: failure, source_ip: 203.0.113.44, user_id: admin, host_id: LINUX-03}
+      - {offset_seconds: 20, event_type: authentication, action: login, status: failure, source_ip: 203.0.113.44, user_id: admin, host_id: LINUX-03}
+      - {offset_seconds: 41, event_type: authentication, action: login, status: failure, source_ip: 203.0.113.44, user_id: admin, host_id: LINUX-03}
+      - {offset_seconds: 62, event_type: authentication, action: login, status: failure, source_ip: 203.0.113.44, user_id: admin, host_id: LINUX-03}
+  - name: five failures spread beyond the window
+    expect: no_match
+    events:
+      - {offset_seconds: 0,   event_type: authentication, action: login, status: failure, source_ip: 203.0.113.44, user_id: admin, host_id: LINUX-03}
+      - {offset_seconds: 400, event_type: authentication, action: login, status: failure, source_ip: 203.0.113.44, user_id: admin, host_id: LINUX-03}
+      - {offset_seconds: 800, event_type: authentication, action: login, status: failure, source_ip: 203.0.113.44, user_id: admin, host_id: LINUX-03}
+      - {offset_seconds: 1200, event_type: authentication, action: login, status: failure, source_ip: 203.0.113.44, user_id: admin, host_id: LINUX-03}
+      - {offset_seconds: 1600, event_type: authentication, action: login, status: failure, source_ip: 203.0.113.44, user_id: admin, host_id: LINUX-03}
+  - name: successful logins are not failures
+    expect: no_match
+    events:
+      - {offset_seconds: 0,  event_type: authentication, action: login, status: success, source_ip: 203.0.113.44, user_id: admin, host_id: LINUX-03}
+      - {offset_seconds: 20, event_type: authentication, action: login, status: success, source_ip: 203.0.113.44, user_id: admin, host_id: LINUX-03}
+      - {offset_seconds: 41, event_type: authentication, action: login, status: success, source_ip: 203.0.113.44, user_id: admin, host_id: LINUX-03}
+      - {offset_seconds: 62, event_type: authentication, action: login, status: success, source_ip: 203.0.113.44, user_id: admin, host_id: LINUX-03}
+      - {offset_seconds: 90, event_type: authentication, action: login, status: success, source_ip: 203.0.113.44, user_id: admin, host_id: LINUX-03}
+
+---
+id: BRUTE_FORCE_002
+name: Password Spraying Across Multiple Accounts
+description: >
+  One source attempted authentication against several distinct accounts with a
+  low attempt count per account. Spraying is deliberately shaped to stay under
+  per-account lockout thresholds, so it is invisible to any rule that counts
+  failures per user - the distinctness requirement is what makes it detectable.
+type: threshold
+severity: high
+confidence: 0.85
+category: brute-force
+author: sentinel-x
+version: "1.0"
+
+mitre:
+  techniques: [T1110, T1110.003]
+  tactics: [TA0006]
+
+selection:
+  event_type: authentication
+  status: failure
+  action: login
+
+group_by: [source_ip]
+
+threshold:
+  count: 6
+  window_seconds: 600
+  distinct_field: user
+  distinct_count: 4
+
+title_template: "Password spraying from {source_ip} across multiple accounts"
+dedup_window_seconds: 1800
+
+false_positives:
+  - "A shared NAT egress address after a password policy change, where many users fail at once."
+  - "Load-balanced application servers authenticating on behalf of many users through one address."
+
+references:
+  - "https://attack.mitre.org/techniques/T1110/003/"
+
+tests:
+  - name: six failures across five accounts from one source
+    expect: match
+    events:
+      - {offset_seconds: 0,   event_type: authentication, action: login, status: failure, source_ip: 198.51.100.23, user_id: alice,   host_id: LINUX-01}
+      - {offset_seconds: 35,  event_type: authentication, action: login, status: failure, source_ip: 198.51.100.23, user_id: bob,     host_id: LINUX-01}
+      - {offset_seconds: 70,  event_type: authentication, action: login, status: failure, source_ip: 198.51.100.23, user_id: carol,   host_id: LINUX-01}
+      - {offset_seconds: 105, event_type: authentication, action: login, status: failure, source_ip: 198.51.100.23, user_id: dave,    host_id: LINUX-01}
+      - {offset_seconds: 140, event_type: authentication, action: login, status: failure, source_ip: 198.51.100.23, user_id: erin,    host_id: LINUX-01}
+      - {offset_seconds: 175, event_type: authentication, action: login, status: failure, source_ip: 198.51.100.23, user_id: frank,   host_id: LINUX-01}
+  - name: many failures against a single account is guessing, not spraying
+    expect: no_match
+    events:
+      - {offset_seconds: 0,   event_type: authentication, action: login, status: failure, source_ip: 198.51.100.23, user_id: alice, host_id: LINUX-01}
+      - {offset_seconds: 35,  event_type: authentication, action: login, status: failure, source_ip: 198.51.100.23, user_id: alice, host_id: LINUX-01}
+      - {offset_seconds: 70,  event_type: authentication, action: login, status: failure, source_ip: 198.51.100.23, user_id: alice, host_id: LINUX-01}
+      - {offset_seconds: 105, event_type: authentication, action: login, status: failure, source_ip: 198.51.100.23, user_id: alice, host_id: LINUX-01}
+      - {offset_seconds: 140, event_type: authentication, action: login, status: failure, source_ip: 198.51.100.23, user_id: alice, host_id: LINUX-01}
+      - {offset_seconds: 175, event_type: authentication, action: login, status: failure, source_ip: 198.51.100.23, user_id: alice, host_id: LINUX-01}
+
+---
+id: BRUTE_FORCE_003
+name: Successful Authentication Following Repeated Failures
+description: >
+  Repeated authentication failures from a source were followed by a success from
+  that same source. This is the transition from attempt to compromise and is the
+  highest-value signal in the authentication rule set: it is the moment an
+  account should be considered owned by someone else.
+type: sequence
+severity: critical
+confidence: 0.88
+category: brute-force
+author: sentinel-x
+version: "1.0"
+
+mitre:
+  techniques: [T1110, T1078]
+  tactics: [TA0006, TA0001]
+
+group_by: [source_ip]
+window_seconds: 900
+ordered: true
+
+steps:
+  - name: repeated_failures
+    min_count: 4
+    selection:
+      event_type: authentication
+      status: failure
+      action: login
+  - name: successful_login
+    min_count: 1
+    max_gap_seconds: 600
+    selection:
+      event_type: authentication
+      status: success
+      action: login
+
+title_template: "Successful login from {source_ip} after repeated failures"
+dedup_window_seconds: 3600
+
+false_positives:
+  - "A user who mistyped a password several times and then succeeded. Distinguishing signal: a single target account, an address already in that account's baseline, and normal working hours."
+
+references:
+  - "https://attack.mitre.org/techniques/T1110/"
+  - "https://attack.mitre.org/techniques/T1078/"
+
+tests:
+  - name: four failures then a success from the same source
+    expect: match
+    events:
+      - {offset_seconds: 0,   event_type: authentication, action: login, status: failure, source_ip: 203.0.113.44, user_id: admin, host_id: LINUX-03}
+      - {offset_seconds: 18,  event_type: authentication, action: login, status: failure, source_ip: 203.0.113.44, user_id: admin, host_id: LINUX-03}
+      - {offset_seconds: 39,  event_type: authentication, action: login, status: failure, source_ip: 203.0.113.44, user_id: admin, host_id: LINUX-03}
+      - {offset_seconds: 61,  event_type: authentication, action: login, status: failure, source_ip: 203.0.113.44, user_id: admin, host_id: LINUX-03}
+      - {offset_seconds: 84,  event_type: authentication, action: login, status: success, source_ip: 203.0.113.44, user_id: admin, host_id: LINUX-03}
+  - name: success before the failures is not a compromise sequence
+    expect: no_match
+    events:
+      - {offset_seconds: 0,   event_type: authentication, action: login, status: success, source_ip: 203.0.113.44, user_id: admin, host_id: LINUX-03}
+      - {offset_seconds: 18,  event_type: authentication, action: login, status: failure, source_ip: 203.0.113.44, user_id: admin, host_id: LINUX-03}
+      - {offset_seconds: 39,  event_type: authentication, action: login, status: failure, source_ip: 203.0.113.44, user_id: admin, host_id: LINUX-03}
+      - {offset_seconds: 61,  event_type: authentication, action: login, status: failure, source_ip: 203.0.113.44, user_id: admin, host_id: LINUX-03}
+      - {offset_seconds: 84,  event_type: authentication, action: login, status: failure, source_ip: 203.0.113.44, user_id: admin, host_id: LINUX-03}
+  - name: failures and success from different sources do not correlate
+    expect: no_match
+    events:
+      - {offset_seconds: 0,   event_type: authentication, action: login, status: failure, source_ip: 203.0.113.44, user_id: admin, host_id: LINUX-03}
+      - {offset_seconds: 18,  event_type: authentication, action: login, status: failure, source_ip: 203.0.113.44, user_id: admin, host_id: LINUX-03}
+      - {offset_seconds: 39,  event_type: authentication, action: login, status: failure, source_ip: 203.0.113.44, user_id: admin, host_id: LINUX-03}
+      - {offset_seconds: 61,  event_type: authentication, action: login, status: failure, source_ip: 203.0.113.44, user_id: admin, host_id: LINUX-03}
+      - {offset_seconds: 84,  event_type: authentication, action: login, status: success, source_ip: 10.20.4.31,   user_id: admin, host_id: LINUX-03}

