@@ -1,0 +1,1214 @@
+[
+  {
+    "technique_id": "T1110",
+    "name": "Brute Force",
+    "tactic_ids": [
+      "TA0006"
+    ],
+    "is_subtechnique": false,
+    "parent_technique_id": null,
+    "platforms": [
+      "Linux",
+      "Windows",
+      "macOS",
+      "IaaS",
+      "SaaS",
+      "Identity Provider",
+      "Office Suite"
+    ],
+    "data_sources": [],
+    "description": "Adversaries systematically guess credentials when they do not have them.",
+    "detection_guidance": "Monitor authentication logs for repeated failures from one source, and for failures spread thinly across many accounts.",
+    "url": "https://attack.mitre.org/techniques/T1110/"
+  },
+  {
+    "technique_id": "T1110.001",
+    "name": "Brute Force: Password Guessing",
+    "tactic_ids": [
+      "TA0006"
+    ],
+    "is_subtechnique": true,
+    "parent_technique_id": "T1110",
+    "platforms": [
+      "Linux",
+      "Windows",
+      "macOS",
+      "IaaS",
+      "SaaS",
+      "Identity Provider",
+      "Office Suite"
+    ],
+    "data_sources": [],
+    "description": "Repeated authentication attempts against one or more accounts using a list of likely passwords.",
+    "detection_guidance": "Threshold on authentication failures grouped by source address.",
+    "url": "https://attack.mitre.org/techniques/T1110/001/"
+  },
+  {
+    "technique_id": "T1110.003",
+    "name": "Brute Force: Password Spraying",
+    "tactic_ids": [
+      "TA0006"
+    ],
+    "is_subtechnique": true,
+    "parent_technique_id": "T1110",
+    "platforms": [
+      "Linux",
+      "Windows",
+      "macOS",
+      "IaaS",
+      "SaaS",
+      "Identity Provider",
+      "Office Suite"
+    ],
+    "data_sources": [],
+    "description": "A small number of common passwords tried against many accounts to stay below lockout thresholds.",
+    "detection_guidance": "Count distinct target accounts per source, not attempts per account.",
+    "url": "https://attack.mitre.org/techniques/T1110/003/"
+  },
+  {
+    "technique_id": "T1110.004",
+    "name": "Brute Force: Credential Stuffing",
+    "tactic_ids": [
+      "TA0006"
+    ],
+    "is_subtechnique": true,
+    "parent_technique_id": "T1110",
+    "platforms": [
+      "Linux",
+      "Windows",
+      "macOS",
+      "IaaS",
+      "SaaS",
+      "Identity Provider",
+      "Office Suite"
+    ],
+    "data_sources": [],
+    "description": "Credentials from an unrelated breach replayed against the target.",
+    "detection_guidance": "High failure volume with near-zero repetition of the same username/password pair.",
+    "url": "https://attack.mitre.org/techniques/T1110/004/"
+  },
+  {
+    "technique_id": "T1078",
+    "name": "Valid Accounts",
+    "tactic_ids": [
+      "TA0001",
+      "TA0003",
+      "TA0004",
+      "TA0005"
+    ],
+    "is_subtechnique": false,
+    "parent_technique_id": null,
+    "platforms": [
+      "Linux",
+      "Windows",
+      "macOS",
+      "IaaS",
+      "SaaS",
+      "Identity Provider",
+      "Office Suite"
+    ],
+    "data_sources": [],
+    "description": "Adversaries use legitimate credentials, which bypasses controls that look for malicious code.",
+    "detection_guidance": "Baseline per-account behaviour: source addresses, hours, and hosts accessed. Alert on multi-factor deviation, not single novelty.",
+    "url": "https://attack.mitre.org/techniques/T1078/"
+  },
+  {
+    "technique_id": "T1078.002",
+    "name": "Valid Accounts: Domain Accounts",
+    "tactic_ids": [
+      "TA0001",
+      "TA0003",
+      "TA0004",
+      "TA0005"
+    ],
+    "is_subtechnique": true,
+    "parent_technique_id": "T1078",
+    "platforms": [
+      "Windows"
+    ],
+    "data_sources": [],
+    "description": "Use of compromised domain credentials, which typically grant access across many systems.",
+    "detection_guidance": "Correlate a single domain account authenticating to unusual numbers of hosts.",
+    "url": "https://attack.mitre.org/techniques/T1078/002/"
+  },
+  {
+    "technique_id": "T1078.003",
+    "name": "Valid Accounts: Local Accounts",
+    "tactic_ids": [
+      "TA0001",
+      "TA0003",
+      "TA0004",
+      "TA0005"
+    ],
+    "is_subtechnique": true,
+    "parent_technique_id": "T1078",
+    "platforms": [
+      "Linux",
+      "Windows",
+      "macOS"
+    ],
+    "data_sources": [],
+    "description": "Use of local account credentials configured by an administrator or by the operating system.",
+    "detection_guidance": "Monitor local account use on systems where interactive local login is not expected.",
+    "url": "https://attack.mitre.org/techniques/T1078/003/"
+  },
+  {
+    "technique_id": "T1078.004",
+    "name": "Valid Accounts: Cloud Accounts",
+    "tactic_ids": [
+      "TA0001",
+      "TA0003",
+      "TA0004",
+      "TA0005"
+    ],
+    "is_subtechnique": true,
+    "parent_technique_id": "T1078",
+    "platforms": [
+      "IaaS",
+      "SaaS",
+      "Identity Provider",
+      "Office Suite"
+    ],
+    "data_sources": [],
+    "description": "Use of compromised cloud identities to access control planes and data.",
+    "detection_guidance": "Baseline per-identity API usage, source address and MFA state; alert on combined deviation.",
+    "url": "https://attack.mitre.org/techniques/T1078/004/"
+  },
+  {
+    "technique_id": "T1087",
+    "name": "Account Discovery",
+    "tactic_ids": [
+      "TA0007"
+    ],
+    "is_subtechnique": false,
+    "parent_technique_id": null,
+    "platforms": [
+      "Linux",
+      "Windows",
+      "macOS",
+      "IaaS",
+      "SaaS",
+      "Identity Provider",
+      "Office Suite"
+    ],
+    "data_sources": [],
+    "description": "Adversaries enumerate accounts to understand which identities exist and which are privileged.",
+    "detection_guidance": "Detect bursts of enumeration commands rather than any single command.",
+    "url": "https://attack.mitre.org/techniques/T1087/"
+  },
+  {
+    "technique_id": "T1087.001",
+    "name": "Account Discovery: Local Account",
+    "tactic_ids": [
+      "TA0007"
+    ],
+    "is_subtechnique": true,
+    "parent_technique_id": "T1087",
+    "platforms": [
+      "Linux",
+      "Windows",
+      "macOS"
+    ],
+    "data_sources": [],
+    "description": "Enumeration of local accounts via commands such as id, whoami, and reads of /etc/passwd.",
+    "detection_guidance": "Correlate several enumeration categories from one account within a short window.",
+    "url": "https://attack.mitre.org/techniques/T1087/001/"
+  },
+  {
+    "technique_id": "T1087.002",
+    "name": "Account Discovery: Domain Account",
+    "tactic_ids": [
+      "TA0007"
+    ],
+    "is_subtechnique": true,
+    "parent_technique_id": "T1087",
+    "platforms": [
+      "Windows"
+    ],
+    "data_sources": [],
+    "description": "Enumeration of domain accounts via net, dsquery and directory queries.",
+    "detection_guidance": "Windows 4798/4799 events and net.exe execution with account arguments.",
+    "url": "https://attack.mitre.org/techniques/T1087/002/"
+  },
+  {
+    "technique_id": "T1087.004",
+    "name": "Account Discovery: Cloud Account",
+    "tactic_ids": [
+      "TA0007"
+    ],
+    "is_subtechnique": true,
+    "parent_technique_id": "T1087",
+    "platforms": [
+      "IaaS",
+      "SaaS",
+      "Identity Provider",
+      "Office Suite"
+    ],
+    "data_sources": [],
+    "description": "Enumeration of cloud identities via IAM list and describe APIs.",
+    "detection_guidance": "Burst of distinct read-only IAM calls from one identity.",
+    "url": "https://attack.mitre.org/techniques/T1087/004/"
+  },
+  {
+    "technique_id": "T1082",
+    "name": "System Information Discovery",
+    "tactic_ids": [
+      "TA0007"
+    ],
+    "is_subtechnique": false,
+    "parent_technique_id": null,
+    "platforms": [
+      "Linux",
+      "Windows",
+      "macOS"
+    ],
+    "data_sources": [],
+    "description": "Collection of host details such as OS version, architecture and hardware.",
+    "detection_guidance": "uname, systeminfo, hostnamectl executions, particularly alongside other discovery.",
+    "url": "https://attack.mitre.org/techniques/T1082/"
+  },
+  {
+    "technique_id": "T1033",
+    "name": "System Owner/User Discovery",
+    "tactic_ids": [
+      "TA0007"
+    ],
+    "is_subtechnique": false,
+    "parent_technique_id": null,
+    "platforms": [
+      "Linux",
+      "Windows",
+      "macOS"
+    ],
+    "data_sources": [],
+    "description": "Identification of the primary user or currently logged-on users.",
+    "detection_guidance": "whoami, w, last, and query user executions.",
+    "url": "https://attack.mitre.org/techniques/T1033/"
+  },
+  {
+    "technique_id": "T1057",
+    "name": "Process Discovery",
+    "tactic_ids": [
+      "TA0007"
+    ],
+    "is_subtechnique": false,
+    "parent_technique_id": null,
+    "platforms": [
+      "Linux",
+      "Windows",
+      "macOS"
+    ],
+    "data_sources": [],
+    "description": "Enumeration of running processes to identify defences and valuable software.",
+    "detection_guidance": "ps, tasklist and Get-Process executions in sequence with other discovery.",
+    "url": "https://attack.mitre.org/techniques/T1057/"
+  },
+  {
+    "technique_id": "T1069",
+    "name": "Permission Groups Discovery",
+    "tactic_ids": [
+      "TA0007"
+    ],
+    "is_subtechnique": false,
+    "parent_technique_id": null,
+    "platforms": [
+      "Linux",
+      "Windows",
+      "macOS",
+      "IaaS",
+      "SaaS",
+      "Identity Provider",
+      "Office Suite"
+    ],
+    "data_sources": [],
+    "description": "Enumeration of group memberships to find privileged principals.",
+    "detection_guidance": "groups, net group, and cloud group-listing APIs.",
+    "url": "https://attack.mitre.org/techniques/T1069/"
+  },
+  {
+    "technique_id": "T1069.003",
+    "name": "Permission Groups Discovery: Cloud Groups",
+    "tactic_ids": [
+      "TA0007"
+    ],
+    "is_subtechnique": true,
+    "parent_technique_id": "T1069",
+    "platforms": [
+      "IaaS",
+      "SaaS",
+      "Identity Provider",
+      "Office Suite"
+    ],
+    "data_sources": [],
+    "description": "Enumeration of cloud group membership and role assignment.",
+    "detection_guidance": "ListGroups, ListGroupsForUser and equivalent APIs.",
+    "url": "https://attack.mitre.org/techniques/T1069/003/"
+  },
+  {
+    "technique_id": "T1046",
+    "name": "Network Service Discovery",
+    "tactic_ids": [
+      "TA0007"
+    ],
+    "is_subtechnique": false,
+    "parent_technique_id": null,
+    "platforms": [
+      "Linux",
+      "Windows",
+      "macOS",
+      "IaaS"
+    ],
+    "data_sources": [],
+    "description": "Scanning for reachable services to identify lateral movement paths.",
+    "detection_guidance": "Many short-lived connections from one host to many destinations or ports.",
+    "url": "https://attack.mitre.org/techniques/T1046/"
+  },
+  {
+    "technique_id": "T1518",
+    "name": "Software Discovery",
+    "tactic_ids": [
+      "TA0007"
+    ],
+    "is_subtechnique": false,
+    "parent_technique_id": null,
+    "platforms": [
+      "Linux",
+      "Windows",
+      "macOS",
+      "IaaS",
+      "SaaS",
+      "Identity Provider",
+      "Office Suite"
+    ],
+    "data_sources": [],
+    "description": "Enumeration of installed software, often to identify security tooling.",
+    "detection_guidance": "Package manager queries and registry enumeration.",
+    "url": "https://attack.mitre.org/techniques/T1518/"
+  },
+  {
+    "technique_id": "T1526",
+    "name": "Cloud Service Discovery",
+    "tactic_ids": [
+      "TA0007"
+    ],
+    "is_subtechnique": false,
+    "parent_technique_id": null,
+    "platforms": [
+      "IaaS",
+      "SaaS",
+      "Identity Provider",
+      "Office Suite"
+    ],
+    "data_sources": [],
+    "description": "Enumeration of available cloud services and their configuration.",
+    "detection_guidance": "Describe and list API calls across multiple services from one identity.",
+    "url": "https://attack.mitre.org/techniques/T1526/"
+  },
+  {
+    "technique_id": "T1580",
+    "name": "Cloud Infrastructure Discovery",
+    "tactic_ids": [
+      "TA0007"
+    ],
+    "is_subtechnique": false,
+    "parent_technique_id": null,
+    "platforms": [
+      "IaaS"
+    ],
+    "data_sources": [],
+    "description": "Enumeration of compute, storage and networking resources in a cloud account.",
+    "detection_guidance": "DescribeInstances, ListBuckets and similar inventory calls.",
+    "url": "https://attack.mitre.org/techniques/T1580/"
+  },
+  {
+    "technique_id": "T1059",
+    "name": "Command and Scripting Interpreter",
+    "tactic_ids": [
+      "TA0002"
+    ],
+    "is_subtechnique": false,
+    "parent_technique_id": null,
+    "platforms": [
+      "Linux",
+      "Windows",
+      "macOS",
+      "IaaS",
+      "SaaS",
+      "Identity Provider",
+      "Office Suite"
+    ],
+    "data_sources": [],
+    "description": "Execution of commands and scripts through interpreters.",
+    "detection_guidance": "Process creation events for shells and interpreters, with attention to unusual parents.",
+    "url": "https://attack.mitre.org/techniques/T1059/"
+  },
+  {
+    "technique_id": "T1059.001",
+    "name": "Command and Scripting Interpreter: PowerShell",
+    "tactic_ids": [
+      "TA0002"
+    ],
+    "is_subtechnique": true,
+    "parent_technique_id": "T1059",
+    "platforms": [
+      "Windows"
+    ],
+    "data_sources": [],
+    "description": "Use of PowerShell to execute commands and scripts.",
+    "detection_guidance": "Encoded command arguments, unusual parent processes, and script block logging.",
+    "url": "https://attack.mitre.org/techniques/T1059/001/"
+  },
+  {
+    "technique_id": "T1059.004",
+    "name": "Command and Scripting Interpreter: Unix Shell",
+    "tactic_ids": [
+      "TA0002"
+    ],
+    "is_subtechnique": true,
+    "parent_technique_id": "T1059",
+    "platforms": [
+      "Linux",
+      "macOS"
+    ],
+    "data_sources": [],
+    "description": "Use of Unix shells to execute commands and scripts.",
+    "detection_guidance": "Shell processes spawned by services or web servers rather than by login sessions.",
+    "url": "https://attack.mitre.org/techniques/T1059/004/"
+  },
+  {
+    "technique_id": "T1548",
+    "name": "Abuse Elevation Control Mechanism",
+    "tactic_ids": [
+      "TA0004",
+      "TA0005"
+    ],
+    "is_subtechnique": false,
+    "parent_technique_id": null,
+    "platforms": [
+      "Linux",
+      "Windows",
+      "macOS",
+      "IaaS",
+      "SaaS",
+      "Identity Provider",
+      "Office Suite"
+    ],
+    "data_sources": [],
+    "description": "Circumvention of mechanisms that control elevated privilege.",
+    "detection_guidance": "Correlate privilege enumeration with successful elevation shortly afterwards.",
+    "url": "https://attack.mitre.org/techniques/T1548/"
+  },
+  {
+    "technique_id": "T1548.001",
+    "name": "Abuse Elevation Control Mechanism: Setuid and Setgid",
+    "tactic_ids": [
+      "TA0004",
+      "TA0005"
+    ],
+    "is_subtechnique": true,
+    "parent_technique_id": "T1548",
+    "platforms": [
+      "Linux",
+      "macOS"
+    ],
+    "data_sources": [],
+    "description": "Abuse of setuid/setgid binaries to execute code with the file owner's privileges.",
+    "detection_guidance": "Filesystem searches for the setuid bit, and changes to setuid permissions.",
+    "url": "https://attack.mitre.org/techniques/T1548/001/"
+  },
+  {
+    "technique_id": "T1548.003",
+    "name": "Abuse Elevation Control Mechanism: Sudo and Sudo Caching",
+    "tactic_ids": [
+      "TA0004",
+      "TA0005"
+    ],
+    "is_subtechnique": true,
+    "parent_technique_id": "T1548",
+    "platforms": [
+      "Linux",
+      "macOS"
+    ],
+    "data_sources": [],
+    "description": "Abuse of sudo configuration or cached credentials to elevate privileges.",
+    "detection_guidance": "sudo invocations to root, particularly interactive shells, and sudoers modification.",
+    "url": "https://attack.mitre.org/techniques/T1548/003/"
+  },
+  {
+    "technique_id": "T1068",
+    "name": "Exploitation for Privilege Escalation",
+    "tactic_ids": [
+      "TA0004"
+    ],
+    "is_subtechnique": false,
+    "parent_technique_id": null,
+    "platforms": [
+      "Linux",
+      "Windows",
+      "macOS"
+    ],
+    "data_sources": [],
+    "description": "Exploitation of a software vulnerability to gain higher privileges.",
+    "detection_guidance": "Unexpected privileged process ancestry, and crashes preceding privileged execution.",
+    "url": "https://attack.mitre.org/techniques/T1068/"
+  },
+  {
+    "technique_id": "T1134",
+    "name": "Access Token Manipulation",
+    "tactic_ids": [
+      "TA0004",
+      "TA0005"
+    ],
+    "is_subtechnique": false,
+    "parent_technique_id": null,
+    "platforms": [
+      "Windows"
+    ],
+    "data_sources": [],
+    "description": "Manipulation of access tokens to operate under a different security context.",
+    "detection_guidance": "Assignment of sensitive privileges such as SeDebugPrivilege at logon.",
+    "url": "https://attack.mitre.org/techniques/T1134/"
+  },
+  {
+    "technique_id": "T1098",
+    "name": "Account Manipulation",
+    "tactic_ids": [
+      "TA0003",
+      "TA0004"
+    ],
+    "is_subtechnique": false,
+    "parent_technique_id": null,
+    "platforms": [
+      "Linux",
+      "Windows",
+      "macOS",
+      "IaaS",
+      "SaaS",
+      "Identity Provider",
+      "Office Suite"
+    ],
+    "data_sources": [],
+    "description": "Modification of accounts to maintain or elevate access.",
+    "detection_guidance": "Group membership changes, credential additions and permission grants.",
+    "url": "https://attack.mitre.org/techniques/T1098/"
+  },
+  {
+    "technique_id": "T1098.001",
+    "name": "Account Manipulation: Additional Cloud Credentials",
+    "tactic_ids": [
+      "TA0003",
+      "TA0004"
+    ],
+    "is_subtechnique": true,
+    "parent_technique_id": "T1098",
+    "platforms": [
+      "IaaS",
+      "SaaS",
+      "Identity Provider",
+      "Office Suite"
+    ],
+    "data_sources": [],
+    "description": "Creation of additional credentials on an identity to retain access.",
+    "detection_guidance": "CreateAccessKey and equivalent calls, especially following enumeration.",
+    "url": "https://attack.mitre.org/techniques/T1098/001/"
+  },
+  {
+    "technique_id": "T1098.003",
+    "name": "Account Manipulation: Additional Cloud Roles",
+    "tactic_ids": [
+      "TA0003",
+      "TA0004"
+    ],
+    "is_subtechnique": true,
+    "parent_technique_id": "T1098",
+    "platforms": [
+      "IaaS",
+      "SaaS",
+      "Identity Provider",
+      "Office Suite"
+    ],
+    "data_sources": [],
+    "description": "Assignment of additional roles or policies to an identity.",
+    "detection_guidance": "Policy attachment events referencing high-privilege policies.",
+    "url": "https://attack.mitre.org/techniques/T1098/003/"
+  },
+  {
+    "technique_id": "T1098.004",
+    "name": "Account Manipulation: SSH Authorized Keys",
+    "tactic_ids": [
+      "TA0003",
+      "TA0004"
+    ],
+    "is_subtechnique": true,
+    "parent_technique_id": "T1098",
+    "platforms": [
+      "Linux",
+      "macOS",
+      "IaaS"
+    ],
+    "data_sources": [],
+    "description": "Addition of SSH public keys to authorized_keys files to retain access.",
+    "detection_guidance": "File integrity monitoring on authorized_keys across the estate.",
+    "url": "https://attack.mitre.org/techniques/T1098/004/"
+  },
+  {
+    "technique_id": "T1136",
+    "name": "Create Account",
+    "tactic_ids": [
+      "TA0003"
+    ],
+    "is_subtechnique": false,
+    "parent_technique_id": null,
+    "platforms": [
+      "Linux",
+      "Windows",
+      "macOS",
+      "IaaS",
+      "SaaS",
+      "Identity Provider",
+      "Office Suite"
+    ],
+    "data_sources": [],
+    "description": "Creation of a new account to maintain access.",
+    "detection_guidance": "Account creation events, with particular attention to privileged UIDs and groups.",
+    "url": "https://attack.mitre.org/techniques/T1136/"
+  },
+  {
+    "technique_id": "T1136.001",
+    "name": "Create Account: Local Account",
+    "tactic_ids": [
+      "TA0003"
+    ],
+    "is_subtechnique": true,
+    "parent_technique_id": "T1136",
+    "platforms": [
+      "Linux",
+      "Windows",
+      "macOS"
+    ],
+    "data_sources": [],
+    "description": "Creation of a local account on a compromised system.",
+    "detection_guidance": "useradd/net user events; a second UID 0 account is unambiguous.",
+    "url": "https://attack.mitre.org/techniques/T1136/001/"
+  },
+  {
+    "technique_id": "T1136.003",
+    "name": "Create Account: Cloud Account",
+    "tactic_ids": [
+      "TA0003"
+    ],
+    "is_subtechnique": true,
+    "parent_technique_id": "T1136",
+    "platforms": [
+      "IaaS",
+      "SaaS",
+      "Identity Provider",
+      "Office Suite"
+    ],
+    "data_sources": [],
+    "description": "Creation of a cloud identity to maintain access.",
+    "detection_guidance": "CreateUser and CreateRole calls from identities that do not normally provision.",
+    "url": "https://attack.mitre.org/techniques/T1136/003/"
+  },
+  {
+    "technique_id": "T1053",
+    "name": "Scheduled Task/Job",
+    "tactic_ids": [
+      "TA0002",
+      "TA0003",
+      "TA0004"
+    ],
+    "is_subtechnique": false,
+    "parent_technique_id": null,
+    "platforms": [
+      "Linux",
+      "Windows",
+      "macOS"
+    ],
+    "data_sources": [],
+    "description": "Scheduling of code to run automatically, providing execution and persistence.",
+    "detection_guidance": "Creation of scheduled tasks and cron entries, especially outside change windows.",
+    "url": "https://attack.mitre.org/techniques/T1053/"
+  },
+  {
+    "technique_id": "T1053.003",
+    "name": "Scheduled Task/Job: Cron",
+    "tactic_ids": [
+      "TA0002",
+      "TA0003",
+      "TA0004"
+    ],
+    "is_subtechnique": true,
+    "parent_technique_id": "T1053",
+    "platforms": [
+      "Linux",
+      "macOS"
+    ],
+    "data_sources": [],
+    "description": "Use of cron to schedule execution of malicious code.",
+    "detection_guidance": "File creation in /etc/cron.* and /var/spool/cron.",
+    "url": "https://attack.mitre.org/techniques/T1053/003/"
+  },
+  {
+    "technique_id": "T1053.005",
+    "name": "Scheduled Task/Job: Scheduled Task",
+    "tactic_ids": [
+      "TA0002",
+      "TA0003",
+      "TA0004"
+    ],
+    "is_subtechnique": true,
+    "parent_technique_id": "T1053",
+    "platforms": [
+      "Windows"
+    ],
+    "data_sources": [],
+    "description": "Use of the Windows Task Scheduler to execute code.",
+    "detection_guidance": "Event ID 4698 and file creation under System32\\Tasks.",
+    "url": "https://attack.mitre.org/techniques/T1053/005/"
+  },
+  {
+    "technique_id": "T1543",
+    "name": "Create or Modify System Process",
+    "tactic_ids": [
+      "TA0003",
+      "TA0004"
+    ],
+    "is_subtechnique": false,
+    "parent_technique_id": null,
+    "platforms": [
+      "Linux",
+      "Windows",
+      "macOS"
+    ],
+    "data_sources": [],
+    "description": "Creation or modification of system-level services to execute code repeatedly.",
+    "detection_guidance": "Service installation events and unit file creation.",
+    "url": "https://attack.mitre.org/techniques/T1543/"
+  },
+  {
+    "technique_id": "T1543.002",
+    "name": "Create or Modify System Process: Systemd Service",
+    "tactic_ids": [
+      "TA0003",
+      "TA0004"
+    ],
+    "is_subtechnique": true,
+    "parent_technique_id": "T1543",
+    "platforms": [
+      "Linux"
+    ],
+    "data_sources": [],
+    "description": "Creation or modification of systemd services for persistence.",
+    "detection_guidance": "File creation under /etc/systemd/system and /lib/systemd/system.",
+    "url": "https://attack.mitre.org/techniques/T1543/002/"
+  },
+  {
+    "technique_id": "T1543.003",
+    "name": "Create or Modify System Process: Windows Service",
+    "tactic_ids": [
+      "TA0003",
+      "TA0004"
+    ],
+    "is_subtechnique": true,
+    "parent_technique_id": "T1543",
+    "platforms": [
+      "Windows"
+    ],
+    "data_sources": [],
+    "description": "Creation or modification of Windows services for persistence.",
+    "detection_guidance": "Event ID 7045 and service configuration changes.",
+    "url": "https://attack.mitre.org/techniques/T1543/003/"
+  },
+  {
+    "technique_id": "T1021",
+    "name": "Remote Services",
+    "tactic_ids": [
+      "TA0008"
+    ],
+    "is_subtechnique": false,
+    "parent_technique_id": null,
+    "platforms": [
+      "Linux",
+      "Windows",
+      "macOS",
+      "IaaS",
+      "SaaS",
+      "Identity Provider",
+      "Office Suite"
+    ],
+    "data_sources": [],
+    "description": "Use of valid accounts with remote services to move between systems.",
+    "detection_guidance": "Authentication to hosts an account does not normally access.",
+    "url": "https://attack.mitre.org/techniques/T1021/"
+  },
+  {
+    "technique_id": "T1021.001",
+    "name": "Remote Services: Remote Desktop Protocol",
+    "tactic_ids": [
+      "TA0008"
+    ],
+    "is_subtechnique": true,
+    "parent_technique_id": "T1021",
+    "platforms": [
+      "Windows"
+    ],
+    "data_sources": [],
+    "description": "Use of RDP to interactively access remote systems.",
+    "detection_guidance": "Logon type 10 events and connections to port 3389.",
+    "url": "https://attack.mitre.org/techniques/T1021/001/"
+  },
+  {
+    "technique_id": "T1021.004",
+    "name": "Remote Services: SSH",
+    "tactic_ids": [
+      "TA0008"
+    ],
+    "is_subtechnique": true,
+    "parent_technique_id": "T1021",
+    "platforms": [
+      "Linux",
+      "macOS",
+      "IaaS"
+    ],
+    "data_sources": [],
+    "description": "Use of SSH to access remote systems.",
+    "detection_guidance": "Internal host-to-host SSH, particularly to hosts outside the account's baseline.",
+    "url": "https://attack.mitre.org/techniques/T1021/004/"
+  },
+  {
+    "technique_id": "T1021.006",
+    "name": "Remote Services: Windows Remote Management",
+    "tactic_ids": [
+      "TA0008"
+    ],
+    "is_subtechnique": true,
+    "parent_technique_id": "T1021",
+    "platforms": [
+      "Windows"
+    ],
+    "data_sources": [],
+    "description": "Use of WinRM to execute commands on remote systems.",
+    "detection_guidance": "Connections to ports 5985/5986 and WSMan provider activity.",
+    "url": "https://attack.mitre.org/techniques/T1021/006/"
+  },
+  {
+    "technique_id": "T1570",
+    "name": "Lateral Tool Transfer",
+    "tactic_ids": [
+      "TA0008"
+    ],
+    "is_subtechnique": false,
+    "parent_technique_id": null,
+    "platforms": [
+      "Linux",
+      "Windows",
+      "macOS"
+    ],
+    "data_sources": [],
+    "description": "Copying of tools between systems inside the environment.",
+    "detection_guidance": "File writes to newly accessed hosts shortly after authentication.",
+    "url": "https://attack.mitre.org/techniques/T1570/"
+  },
+  {
+    "technique_id": "T1105",
+    "name": "Ingress Tool Transfer",
+    "tactic_ids": [
+      "TA0011"
+    ],
+    "is_subtechnique": false,
+    "parent_technique_id": null,
+    "platforms": [
+      "Linux",
+      "Windows",
+      "macOS"
+    ],
+    "data_sources": [],
+    "description": "Transfer of tools from an external system into the environment.",
+    "detection_guidance": "curl/wget/certutil executions with remote URLs on servers.",
+    "url": "https://attack.mitre.org/techniques/T1105/"
+  },
+  {
+    "technique_id": "T1071",
+    "name": "Application Layer Protocol",
+    "tactic_ids": [
+      "TA0011"
+    ],
+    "is_subtechnique": false,
+    "parent_technique_id": null,
+    "platforms": [
+      "Linux",
+      "Windows",
+      "macOS",
+      "IaaS",
+      "SaaS",
+      "Identity Provider",
+      "Office Suite"
+    ],
+    "data_sources": [],
+    "description": "Use of standard application protocols to blend command and control with normal traffic.",
+    "detection_guidance": "Beaconing patterns and connections to indicators from threat intelligence.",
+    "url": "https://attack.mitre.org/techniques/T1071/"
+  },
+  {
+    "technique_id": "T1071.001",
+    "name": "Application Layer Protocol: Web Protocols",
+    "tactic_ids": [
+      "TA0011"
+    ],
+    "is_subtechnique": true,
+    "parent_technique_id": "T1071",
+    "platforms": [
+      "Linux",
+      "Windows",
+      "macOS"
+    ],
+    "data_sources": [],
+    "description": "Use of HTTP/HTTPS for command and control.",
+    "detection_guidance": "Regular-interval outbound connections with small, consistent payload sizes.",
+    "url": "https://attack.mitre.org/techniques/T1071/001/"
+  },
+  {
+    "technique_id": "T1552",
+    "name": "Unsecured Credentials",
+    "tactic_ids": [
+      "TA0006"
+    ],
+    "is_subtechnique": false,
+    "parent_technique_id": null,
+    "platforms": [
+      "Linux",
+      "Windows",
+      "macOS",
+      "IaaS",
+      "SaaS",
+      "Identity Provider",
+      "Office Suite"
+    ],
+    "data_sources": [],
+    "description": "Discovery of credentials stored insecurely on systems.",
+    "detection_guidance": "Access to credential files, key material and configuration containing secrets.",
+    "url": "https://attack.mitre.org/techniques/T1552/"
+  },
+  {
+    "technique_id": "T1552.004",
+    "name": "Unsecured Credentials: Private Keys",
+    "tactic_ids": [
+      "TA0006"
+    ],
+    "is_subtechnique": true,
+    "parent_technique_id": "T1552",
+    "platforms": [
+      "Linux",
+      "Windows",
+      "macOS",
+      "IaaS",
+      "SaaS",
+      "Identity Provider",
+      "Office Suite"
+    ],
+    "data_sources": [],
+    "description": "Collection of private key material from compromised systems.",
+    "detection_guidance": "Reads of id_rsa and equivalent key files by unexpected processes.",
+    "url": "https://attack.mitre.org/techniques/T1552/004/"
+  },
+  {
+    "technique_id": "T1003",
+    "name": "OS Credential Dumping",
+    "tactic_ids": [
+      "TA0006"
+    ],
+    "is_subtechnique": false,
+    "parent_technique_id": null,
+    "platforms": [
+      "Linux",
+      "Windows",
+      "macOS"
+    ],
+    "data_sources": [],
+    "description": "Extraction of credential material from the operating system.",
+    "detection_guidance": "Access to LSASS memory on Windows and to shadow files on Linux.",
+    "url": "https://attack.mitre.org/techniques/T1003/"
+  },
+  {
+    "technique_id": "T1003.008",
+    "name": "OS Credential Dumping: /etc/passwd and /etc/shadow",
+    "tactic_ids": [
+      "TA0006"
+    ],
+    "is_subtechnique": true,
+    "parent_technique_id": "T1003",
+    "platforms": [
+      "Linux"
+    ],
+    "data_sources": [],
+    "description": "Reading of local credential files to obtain password hashes.",
+    "detection_guidance": "Any read of /etc/shadow by a process other than the expected authentication stack.",
+    "url": "https://attack.mitre.org/techniques/T1003/008/"
+  },
+  {
+    "technique_id": "T1562",
+    "name": "Impair Defenses",
+    "tactic_ids": [
+      "TA0005"
+    ],
+    "is_subtechnique": false,
+    "parent_technique_id": null,
+    "platforms": [
+      "Linux",
+      "Windows",
+      "macOS",
+      "IaaS",
+      "SaaS",
+      "Identity Provider",
+      "Office Suite"
+    ],
+    "data_sources": [],
+    "description": "Disabling or degrading security controls and logging.",
+    "detection_guidance": "Changes to logging configuration and security agent state.",
+    "url": "https://attack.mitre.org/techniques/T1562/"
+  },
+  {
+    "technique_id": "T1562.001",
+    "name": "Impair Defenses: Disable or Modify Tools",
+    "tactic_ids": [
+      "TA0005"
+    ],
+    "is_subtechnique": true,
+    "parent_technique_id": "T1562",
+    "platforms": [
+      "Linux",
+      "Windows",
+      "macOS",
+      "IaaS",
+      "SaaS",
+      "Identity Provider",
+      "Office Suite"
+    ],
+    "data_sources": [],
+    "description": "Disabling of security tooling to avoid detection.",
+    "detection_guidance": "Service stop events for security agents.",
+    "url": "https://attack.mitre.org/techniques/T1562/001/"
+  },
+  {
+    "technique_id": "T1562.008",
+    "name": "Impair Defenses: Disable or Modify Cloud Logs",
+    "tactic_ids": [
+      "TA0005"
+    ],
+    "is_subtechnique": true,
+    "parent_technique_id": "T1562",
+    "platforms": [
+      "IaaS",
+      "SaaS",
+      "Identity Provider",
+      "Office Suite"
+    ],
+    "data_sources": [],
+    "description": "Disabling of cloud audit logging to remove visibility.",
+    "detection_guidance": "StopLogging, DeleteTrail and event selector modification.",
+    "url": "https://attack.mitre.org/techniques/T1562/008/"
+  },
+  {
+    "technique_id": "T1070",
+    "name": "Indicator Removal",
+    "tactic_ids": [
+      "TA0005"
+    ],
+    "is_subtechnique": false,
+    "parent_technique_id": null,
+    "platforms": [
+      "Linux",
+      "Windows",
+      "macOS",
+      "IaaS",
+      "SaaS",
+      "Identity Provider",
+      "Office Suite"
+    ],
+    "data_sources": [],
+    "description": "Deletion or modification of artefacts to remove evidence.",
+    "detection_guidance": "Log truncation and history file clearing.",
+    "url": "https://attack.mitre.org/techniques/T1070/"
+  },
+  {
+    "technique_id": "T1484",
+    "name": "Domain or Tenant Policy Modification",
+    "tactic_ids": [
+      "TA0003",
+      "TA0004"
+    ],
+    "is_subtechnique": false,
+    "parent_technique_id": null,
+    "platforms": [
+      "Windows",
+      "IaaS",
+      "SaaS",
+      "Identity Provider",
+      "Office Suite"
+    ],
+    "data_sources": [],
+    "description": "Modification of directory or tenant policy to escalate and persist.",
+    "detection_guidance": "Changes to trust policies and conditional access configuration.",
+    "url": "https://attack.mitre.org/techniques/T1484/"
+  },
+  {
+    "technique_id": "T1041",
+    "name": "Exfiltration Over C2 Channel",
+    "tactic_ids": [
+      "TA0010"
+    ],
+    "is_subtechnique": false,
+    "parent_technique_id": null,
+    "platforms": [
+      "Linux",
+      "Windows",
+      "macOS"
+    ],
+    "data_sources": [],
+    "description": "Data theft over the existing command and control channel.",
+    "detection_guidance": "Outbound transfer volume that deviates from the host's baseline.",
+    "url": "https://attack.mitre.org/techniques/T1041/"
+  },
+  {
+    "technique_id": "T1567",
+    "name": "Exfiltration Over Web Service",
+    "tactic_ids": [
+      "TA0010"
+    ],
+    "is_subtechnique": false,
+    "parent_technique_id": null,
+    "platforms": [
+      "Linux",
+      "Windows",
+      "macOS",
+      "IaaS",
+      "SaaS",
+      "Identity Provider",
+      "Office Suite"
+    ],
+    "data_sources": [],
+    "description": "Data theft to a legitimate external web service.",
+    "detection_guidance": "Large uploads to file-sharing and paste services.",
+    "url": "https://attack.mitre.org/techniques/T1567/"
+  },
+  {
+    "technique_id": "T1530",
+    "name": "Data from Cloud Storage",
+    "tactic_ids": [
+      "TA0009"
+    ],
+    "is_subtechnique": false,
+    "parent_technique_id": null,
+    "platforms": [
+      "IaaS",
+      "SaaS",
+      "Identity Provider",
+      "Office Suite"
+    ],
+    "data_sources": [],
+    "description": "Collection of data from cloud storage objects.",
+    "detection_guidance": "Unusual volume of object reads, or policy changes exposing a bucket.",
+    "url": "https://attack.mitre.org/techniques/T1530/"
+  }
+]

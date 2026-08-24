@@ -1,0 +1,114 @@
+[
+  {
+    "tactic_id": "TA0043",
+    "name": "Reconnaissance",
+    "shortname": "reconnaissance",
+    "order": 1,
+    "description": "The adversary is gathering information they can use to plan future operations.",
+    "url": "https://attack.mitre.org/tactics/TA0043/"
+  },
+  {
+    "tactic_id": "TA0042",
+    "name": "Resource Development",
+    "shortname": "resource-development",
+    "order": 2,
+    "description": "The adversary is establishing resources they can use to support operations.",
+    "url": "https://attack.mitre.org/tactics/TA0042/"
+  },
+  {
+    "tactic_id": "TA0001",
+    "name": "Initial Access",
+    "shortname": "initial-access",
+    "order": 3,
+    "description": "The adversary is trying to get into your network.",
+    "url": "https://attack.mitre.org/tactics/TA0001/"
+  },
+  {
+    "tactic_id": "TA0002",
+    "name": "Execution",
+    "shortname": "execution",
+    "order": 4,
+    "description": "The adversary is trying to run malicious code.",
+    "url": "https://attack.mitre.org/tactics/TA0002/"
+  },
+  {
+    "tactic_id": "TA0003",
+    "name": "Persistence",
+    "shortname": "persistence",
+    "order": 5,
+    "description": "The adversary is trying to maintain their foothold.",
+    "url": "https://attack.mitre.org/tactics/TA0003/"
+  },
+  {
+    "tactic_id": "TA0004",
+    "name": "Privilege Escalation",
+    "shortname": "privilege-escalation",
+    "order": 6,
+    "description": "The adversary is trying to gain higher-level permissions.",
+    "url": "https://attack.mitre.org/tactics/TA0004/"
+  },
+  {
+    "tactic_id": "TA0005",
+    "name": "Defense Evasion",
+    "shortname": "defense-evasion",
+    "order": 7,
+    "description": "The adversary is trying to avoid being detected.",
+    "url": "https://attack.mitre.org/tactics/TA0005/"
+  },
+  {
+    "tactic_id": "TA0006",
+    "name": "Credential Access",
+    "shortname": "credential-access",
+    "order": 8,
+    "description": "The adversary is trying to steal account names and passwords.",
+    "url": "https://attack.mitre.org/tactics/TA0006/"
+  },
+  {
+    "tactic_id": "TA0007",
+    "name": "Discovery",
+    "shortname": "discovery",
+    "order": 9,
+    "description": "The adversary is trying to figure out your environment.",
+    "url": "https://attack.mitre.org/tactics/TA0007/"
+  },
+  {
+    "tactic_id": "TA0008",
+    "name": "Lateral Movement",
+    "shortname": "lateral-movement",
+    "order": 10,
+    "description": "The adversary is trying to move through your environment.",
+    "url": "https://attack.mitre.org/tactics/TA0008/"
+  },
+  {
+    "tactic_id": "TA0009",
+    "name": "Collection",
+    "shortname": "collection",
+    "order": 11,
+    "description": "The adversary is trying to gather data of interest to their goal.",
+    "url": "https://attack.mitre.org/tactics/TA0009/"
+  },
+  {
+    "tactic_id": "TA0011",
+    "name": "Command and Control",
+    "shortname": "command-and-control",
+    "order": 12,
+    "description": "The adversary is trying to communicate with compromised systems to control them.",
+    "url": "https://attack.mitre.org/tactics/TA0011/"
+  },
+  {
+    "tactic_id": "TA0010",
+    "name": "Exfiltration",
+    "shortname": "exfiltration",
+    "order": 13,
+    "description": "The adversary is trying to steal data.",
+    "url": "https://attack.mitre.org/tactics/TA0010/"
+  },
+  {
+    "tactic_id": "TA0040",
+    "name": "Impact",
+    "shortname": "impact",
+    "order": 14,
+    "description": "The adversary is trying to manipulate, interrupt or destroy your systems and data.",
+    "url": "https://attack.mitre.org/tactics/TA0040/"
+  }
+]
