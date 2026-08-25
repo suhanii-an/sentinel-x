@@ -1,0 +1,134 @@
+{
+  "dataset": "sentinel-x-local-demo-iocs",
+  "version": "1.0",
+  "provenance": "LOCAL DEMO DATA",
+  "notice": "Every indicator below is synthetic. Addresses come from ranges IANA reserves for documentation (RFC 5737) and domains use the RFC 2606 reserved .invalid/.example suffixes. None of these values identify real infrastructure, and none of them came from a threat intelligence feed. SENTINEL-X ships no external feed integration by default; see docs/architecture.md for where a real provider would attach.",
+  "indicators": [
+    {
+      "indicator": "203.0.113.44",
+      "ioc_type": "ip",
+      "confidence": 0.92,
+      "severity": "high",
+      "source": "local-demo",
+      "tags": ["brute-force", "ssh", "scanning"],
+      "description": "Synthetic indicator representing an address observed conducting SSH password guessing against multiple organisations."
+    },
+    {
+      "indicator": "203.0.113.91",
+      "ioc_type": "ip",
+      "confidence": 0.78,
+      "severity": "medium",
+      "source": "local-demo",
+      "tags": ["password-spraying", "credential-access"],
+      "description": "Synthetic indicator representing an address observed conducting low-and-slow password spraying."
+    },
+    {
+      "indicator": "198.51.100.77",
+      "ioc_type": "ip",
+      "confidence": 0.85,
+      "severity": "high",
+      "source": "local-demo",
+      "tags": ["cloud-abuse", "iam"],
+      "description": "Synthetic indicator representing an address associated with abuse of stolen cloud credentials."
+    },
+    {
+      "indicator": "198.51.100.200",
+      "ioc_type": "ip",
+      "confidence": 0.9,
+      "severity": "critical",
+      "source": "local-demo",
+      "tags": ["c2", "staging", "tool-transfer"],
+      "description": "Synthetic indicator representing adversary staging infrastructure used to host post-exploitation tooling."
+    },
+    {
+      "indicator": "192.0.2.147",
+      "ioc_type": "ip",
+      "confidence": 0.55,
+      "severity": "medium",
+      "source": "local-demo",
+      "tags": ["stale", "shared-hosting"],
+      "description": "Lower-confidence synthetic indicator, included so the platform demonstrates that a weak feed hit does not present as a certainty."
+    },
+    {
+      "indicator": "staging-cdn.invalid",
+      "ioc_type": "domain",
+      "confidence": 0.8,
+      "severity": "high",
+      "source": "local-demo",
+      "tags": ["c2", "dns"],
+      "description": "Synthetic command-and-control domain using the RFC 2606 reserved .invalid suffix."
+    },
+    {
+      "indicator": "update-service.example",
+      "ioc_type": "domain",
+      "confidence": 0.65,
+      "severity": "medium",
+      "source": "local-demo",
+      "tags": ["c2", "masquerading"],
+      "description": "Synthetic domain imitating a software update service."
+    },
+    {
+      "indicator": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+      "ioc_type": "hash",
+      "confidence": 0.95,
+      "severity": "critical",
+      "source": "local-demo",
+      "tags": ["setuid-backdoor", "persistence"],
+      "description": "Synthetic SHA-256 representing a setuid backdoor binary dropped during privilege escalation."
+    },
+    {
+      "indicator": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "ioc_type": "hash",
+      "confidence": 0.88,
+      "severity": "high",
+      "source": "local-demo",
+      "tags": ["persistence", "cron"],
+      "description": "Synthetic SHA-256 representing a malicious cron payload."
+    },
+    {
+      "indicator": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "ioc_type": "hash",
+      "confidence": 0.86,
+      "severity": "high",
+      "source": "local-demo",
+      "tags": ["persistence", "systemd"],
+      "description": "Synthetic SHA-256 representing a malicious systemd unit payload."
+    },
+    {
+      "indicator": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+      "ioc_type": "hash",
+      "confidence": 0.7,
+      "severity": "medium",
+      "source": "local-demo",
+      "tags": ["persistence", "ssh-key"],
+      "description": "Synthetic SHA-256 representing a modified authorized_keys file."
+    },
+    {
+      "indicator": "svc-telemetry",
+      "ioc_type": "username",
+      "confidence": 0.6,
+      "severity": "medium",
+      "source": "local-demo",
+      "tags": ["backdoor-account", "persistence"],
+      "description": "Synthetic account name used by the simulated adversary when creating a backdoor account."
+    },
+    {
+      "indicator": "203.0.113.200",
+      "ioc_type": "ip",
+      "confidence": 0.74,
+      "severity": "medium",
+      "source": "local-demo",
+      "tags": ["unused"],
+      "description": "Indicator that no simulated scenario matches. Present so the indicator store is not artificially perfect: real feeds are mostly values you never see."
+    },
+    {
+      "indicator": "exfil-drop.invalid",
+      "ioc_type": "domain",
+      "confidence": 0.82,
+      "severity": "high",
+      "source": "local-demo",
+      "tags": ["exfiltration", "unused"],
+      "description": "Second unmatched indicator, included for the same reason."
+    }
+  ]
+}
