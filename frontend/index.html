@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="en" class="dark">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="color-scheme" content="dark" />
+    <meta
+      name="description"
+      content="SENTINEL-X — threat detection, correlation and investigation platform."
+    />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <!--
+      No web fonts, deliberately.
+
+      This console previously pulled Inter and JetBrains Mono from Google
+      Fonts. Three problems with that, in increasing order of seriousness:
+      the production CSP denies every origin but 'self', so the request was
+      blocked and the fonts silently never loaded; a security console that
+      contacts a third party on every page load leaks which analyst is looking
+      at something and when; and it makes the console's availability depend on
+      a network it does not control.
+
+      The stack below is what the operating system already has. It renders
+      everywhere, costs nothing, and contacts nobody.
+    -->
+    <title>SENTINEL-X</title>
+  </head>
+  <body>
+    <div id="root"></div>
+    <noscript>
+      SENTINEL-X requires JavaScript. The REST API at /api/v1 is fully functional without it —
+      see /docs for the OpenAPI specification.
+    </noscript>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

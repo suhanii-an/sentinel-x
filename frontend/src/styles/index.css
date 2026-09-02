@@ -1,0 +1,159 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    color-scheme: dark;
+  }
+
+  html,
+  body,
+  #root {
+    height: 100%;
+  }
+
+  body {
+    @apply bg-base text-ink font-sans antialiased;
+    font-size: 14px;
+  }
+
+  /* Focus is never removed, only restyled. An analyst navigating by keyboard
+     must always be able to see where they are. */
+  :focus-visible {
+    @apply outline-none ring-2 ring-accent/70 ring-offset-2 ring-offset-base rounded-sm;
+  }
+
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+  ::-webkit-scrollbar-track {
+    @apply bg-transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    @apply bg-line rounded-full border-2 border-solid border-transparent bg-clip-padding;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    @apply bg-line-strong;
+  }
+
+  /* Respect the user's motion preference. */
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+}
+
+@layer components {
+  .panel {
+    @apply bg-surface border border-line rounded-lg;
+  }
+
+  .panel-header {
+    @apply flex items-center justify-between gap-3 px-4 py-3 border-b border-line;
+  }
+
+  .label {
+    @apply text-2xs font-medium uppercase tracking-wider text-ink-faint;
+  }
+
+  .mono {
+    @apply font-mono text-xs;
+  }
+
+  .link {
+    @apply text-accent hover:text-accent/80 underline-offset-2 hover:underline transition-colors;
+  }
+
+  .btn {
+    @apply inline-flex items-center justify-center gap-2 rounded-md px-3 py-1.5 text-sm font-medium
+           transition-colors disabled:opacity-40 disabled:cursor-not-allowed whitespace-nowrap;
+  }
+
+  .btn-primary {
+    @apply btn bg-accent/15 text-accent border border-accent/40 hover:bg-accent/25;
+  }
+
+  .btn-secondary {
+    @apply btn bg-raised text-ink border border-line hover:border-line-strong hover:bg-elevated;
+  }
+
+  .btn-danger {
+    @apply btn bg-critical/15 text-critical border border-critical/40 hover:bg-critical/25;
+  }
+
+  .btn-ghost {
+    @apply btn text-ink-muted hover:text-ink hover:bg-raised;
+  }
+
+  .input {
+    @apply w-full bg-base border border-line rounded-md px-3 py-1.5 text-sm text-ink
+           placeholder:text-ink-faint focus:border-accent/60 transition-colors;
+  }
+
+  .table-wrap {
+    @apply overflow-x-auto;
+  }
+
+  .data-table {
+    @apply w-full text-sm border-collapse;
+  }
+
+  .data-table thead th {
+    @apply label text-left px-3 py-2 border-b border-line bg-elevated/60 whitespace-nowrap sticky top-0 z-10;
+  }
+
+  .data-table tbody td {
+    @apply px-3 py-2 border-b border-line/60 align-top;
+  }
+
+  .data-table tbody tr:hover {
+    @apply bg-elevated/50;
+  }
+
+  .chip {
+    @apply inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-2xs font-medium border;
+  }
+}
+
+/* React Flow theming, kept here so the graph matches the rest of the surface
+   ramp rather than shipping its default light palette. */
+.react-flow__background {
+  background-color: #0a0e14;
+}
+.react-flow__edge-path {
+  stroke: #334158;
+  stroke-width: 1.5;
+}
+.react-flow__edge.selected .react-flow__edge-path,
+.react-flow__edge:hover .react-flow__edge-path {
+  stroke: #22d3ee;
+}
+.react-flow__edge-text {
+  fill: #93a1b8;
+  font-size: 9px;
+}
+.react-flow__edge-textbg {
+  fill: #111722;
+}
+.react-flow__handle {
+  opacity: 0;
+  pointer-events: none;
+}
+.react-flow__controls-button {
+  background: #161d2b;
+  border-bottom: 1px solid #243047;
+  fill: #93a1b8;
+}
+.react-flow__controls-button:hover {
+  background: #1c2536;
+}
+.react-flow__attribution {
+  display: none;
+}
