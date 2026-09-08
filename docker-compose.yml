@@ -1,0 +1,86 @@
+# SENTINEL-X — full stack.
+#
+#   docker compose up --build
+#   open http://localhost:8080
+#
+# Three services: Postgres, the API, and nginx serving the console and proxying
+# the API from the same origin. No AI provider is required; the platform detects,
+# correlates, scores and reports without one.
+#
+# Before the first run, copy .env.example to .env and set SECRET_KEY and
+# BOOTSTRAP_ADMIN_PASSWORD. The API refuses to start in production without an
+# explicit SECRET_KEY rather than signing tokens with a well-known default.
+
+name: sentinel-x
+
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-sentinel}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
+      POSTGRES_DB: ${POSTGRES_DB:-sentinelx}
+      # Scrypt rather than the default md5 for stored role passwords.
+      POSTGRES_INITDB_ARGS: "--auth-host=scram-sha-256"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    # Deliberately not published to the host. Nothing outside this network
+    # needs to reach the database, and a Postgres port on 0.0.0.0 is how
+    # development databases end up on the internet.
+    expose:
+      - "5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-sentinel} -d ${POSTGRES_DB:-sentinelx}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+
+  api:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      ENVIRONMENT: ${ENVIRONMENT:-production}
+      DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-sentinel}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB:-sentinelx}
+      SECRET_KEY: ${SECRET_KEY:?set SECRET_KEY in .env — generate with: python -c 'import secrets;print(secrets.token_urlsafe(48))'}
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
+      CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:8080}
+      DEMO_MODE: ${DEMO_MODE:-true}
+      BOOTSTRAP_ADMIN_USERNAME: ${BOOTSTRAP_ADMIN_USERNAME:-analyst}
+      BOOTSTRAP_ADMIN_PASSWORD: ${BOOTSTRAP_ADMIN_PASSWORD:-}
+      # Optional. With no key the AI panel reports itself unavailable and
+      # every other feature is unaffected.
+      AI_PROVIDER: ${AI_PROVIDER:-none}
+      AI_API_KEY: ${AI_API_KEY:-}
+      AI_MODEL: ${AI_MODEL:-claude-sonnet-4-5}
+    expose:
+      - "8000"
+    # Migrations, then the rule pack and (in demo mode) a seeded scenario, then
+    # the server. Running migrations here rather than in the image's CMD keeps
+    # the schema change visible in the compose logs.
+    command: >
+      sh -c "alembic upgrade head &&
+             python /scripts/seed_database.py --if-empty &&
+             uvicorn app.main:app --host 0.0.0.0 --port 8000 --workers 1"
+    security_opt:
+      - no-new-privileges:true
+    restart: unless-stopped
+
+  web:
+    build:
+      context: .
+      dockerfile: frontend/Dockerfile
+    depends_on:
+      - api
+    ports:
+      - "${WEB_PORT:-8080}:8080"
+    security_opt:
+      - no-new-privileges:true
+    restart: unless-stopped
+
+volumes:
+  pgdata:
