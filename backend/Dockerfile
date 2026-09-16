@@ -19,7 +19,7 @@ RUN apt-get update \
  && apt-get install --no-install-recommends -y build-essential libpq-dev \
  && rm -rf /var/lib/apt/lists/*
 
-COPY requirements.txt .
+COPY backend/requirements.txt .
 RUN python -m venv /opt/venv \
  && /opt/venv/bin/pip install --upgrade pip \
  && /opt/venv/bin/pip install -r requirements.txt
