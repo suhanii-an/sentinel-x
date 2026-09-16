@@ -29,7 +29,6 @@ from __future__ import annotations
 import argparse
 import datetime as dt
 import random
-import secrets
 import sys
 from pathlib import Path
 
@@ -221,14 +220,13 @@ def main() -> int:
 
         # ---------------------------------------------------------- account
         username = settings.BOOTSTRAP_ADMIN_USERNAME
-        generated_password = None
         if get_user(db, username) is None:
             password = settings.BOOTSTRAP_ADMIN_PASSWORD
             if not password:
-                # Never ship a default password. A random one printed once is
-                # safe; a documented default is a backdoor.
-                password = secrets.token_urlsafe(18)
-                generated_password = password
+                raise RuntimeError(
+                    "BOOTSTRAP_ADMIN_PASSWORD must be set before "
+                    "creating the bootstrap admin account."
+                )
             create_user(db, username=username, password=password, role=Role.ADMIN,
                         full_name="SENTINEL-X Administrator")
             db.commit()
@@ -289,13 +287,6 @@ def main() -> int:
         print(f"  alerts    : {db.execute(select(func.count()).select_from(Alert)).scalar_one()}")
         print(f"  incidents : {db.execute(select(func.count()).select_from(Incident)).scalar_one()}")
 
-        if generated_password:
-            print("\n  " + "=" * 66)
-            print("  SIGN-IN CREDENTIALS (shown once, not stored anywhere in plaintext)")
-            print(f"    username: {username}")
-            print(f"    password: {generated_password}")
-            print("  Set BOOTSTRAP_ADMIN_PASSWORD in .env to choose your own.")
-            print("  " + "=" * 66)
         print()
         return 0
 
